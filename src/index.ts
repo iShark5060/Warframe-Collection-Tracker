@@ -83,8 +83,7 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
       }
       return null;
     }
-    const header =
-      req.headers['x-csrf-token'] || req.headers['x-xsrf-token'];
+    const header = req.headers['x-csrf-token'] || req.headers['x-xsrf-token'];
     if (Array.isArray(header)) {
       return header[0] ?? null;
     }

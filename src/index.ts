@@ -68,7 +68,6 @@ app.use(
   }),
 );
 
-// Security headers - configure CSP to allow inline scripts/styles for EJS templates
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -82,14 +81,12 @@ app.use(
   }),
 );
 
-// CSRF protection - must be after session middleware
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
-  getTokenFromRequest: (req) => {
+  getTokenFromRequest: (req: express.Request) => {
     // Check body first
     if (req.body?._csrf) {
       return req.body._csrf as string;
     }
-    // Normalize header to handle array values
     const header = req.headers['x-csrf-token'];
     if (Array.isArray(header)) {
       return header[0] ?? null;
@@ -100,7 +97,6 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
 
 app.use(csrfSynchronisedProtection);
 
-// Static routes that don't need CSRF protection (GET requests for static files)
 app.get('/favicon.ico', generalLimiter, (req, res) => {
   const distPath = path.join(process.cwd(), 'dist', 'favicon.ico');
   const rootPath = path.join(process.cwd(), 'favicon.ico');
@@ -110,7 +106,6 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
   });
 });
 
-// Generate CSRF token and make it available to templates
 app.use((req, res, next) => {
   res.locals.csrfToken = generateToken(req);
   next();

@@ -68,6 +68,27 @@ app.use(
   }),
 );
 
+const { csrfSynchronisedProtection, csrfToken, generateToken } = csrfSync({
+  getTokenFromRequest: (req) =>
+    (req.body && req.body._csrf) ||
+    (req.query && req.query._csrf) ||
+    (req.headers && (req.headers['x-csrf-token'] || req.headers['x-xsrf-token'])),
+});
+
+app.use((req, res, next) => {
+  const method = req.method.toUpperCase();
+
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+    // Generate and expose a CSRF token for safe methods
+    generateToken(req);
+    res.locals.csrfToken = csrfToken(req);
+    return next();
+  }
+
+  // Enforce CSRF validation for unsafe methods
+  return csrfSynchronisedProtection(req, res, next);
+});
+
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
   getTokenFromRequest: (req: express.Request) => {
     if (req.body?._csrf) {

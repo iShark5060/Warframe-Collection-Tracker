@@ -24,7 +24,8 @@
     "@dotenvx/dotenvx": "^1.51.4",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
-    "express-session": "^1.18.1"
+    "express-session": "^1.18.1",
+    "lusca": "^1.7.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

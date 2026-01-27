@@ -16,12 +16,15 @@ import {
   adminLimiter,
 } from '../middleware/rateLimit.js';
 
-const BACKGROUND_PATH = path.join(process.cwd(), 'background.txt');
-
 function getBackgroundArt(): string {
-  if (!fs.existsSync(BACKGROUND_PATH)) return '';
+  const distPath = path.join(process.cwd(), 'dist', 'background.txt');
+  const rootPath = path.join(process.cwd(), 'background.txt');
+
+  const backgroundPath = fs.existsSync(distPath) ? distPath : rootPath;
+
+  if (!fs.existsSync(backgroundPath)) return '';
   try {
-    return fs.readFileSync(BACKGROUND_PATH, 'utf-8');
+    return fs.readFileSync(backgroundPath, 'utf-8');
   } catch {
     return '';
   }

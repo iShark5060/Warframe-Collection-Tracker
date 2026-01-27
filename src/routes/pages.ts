@@ -108,14 +108,9 @@ export function registerPageRoutes(app: Application): void {
     });
   });
 
-  app.get(
-    '/',
-    generalLimiter,
-    requireAuth,
-    (_req: Request, res: Response) => {
-      res.render('index', { appName: APP_NAME, art, esc });
-    },
-  );
+  app.get('/', generalLimiter, requireAuth, (_req: Request, res: Response) => {
+    res.render('index', { appName: APP_NAME, art, esc });
+  });
 
   app.get(
     '/admin',

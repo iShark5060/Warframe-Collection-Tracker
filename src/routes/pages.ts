@@ -102,7 +102,7 @@ export function registerPageRoutes(app: Application): void {
     },
   );
 
-  app.get('/logout', generalLimiter, (req: Request, res: Response) => {
+  app.get('/logout', (req: Request, res: Response) => {
     req.session.destroy(() => {
       res.redirect('/login');
     });

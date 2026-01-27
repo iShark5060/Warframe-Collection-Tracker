@@ -1,53 +1,47 @@
-import rateLimit from 'express-rate-limit';
 import { Request } from 'express';
+import rateLimit from 'express-rate-limit';
 
-import { getClientIP } from '../auth';
-
-// General rate limiter for authenticated routes
 export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return getClientIP(req);
+    return req.ip;
   },
 });
 
-// Stricter rate limiter for login attempts
 export const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login attempts per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: 'Too many login attempts from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful logins
+  skipSuccessfulRequests: true,
   keyGenerator: (req: Request) => {
-    return getClientIP(req);
+    return req.ip;
   },
 });
 
-// API rate limiter (for authenticated API calls)
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 API requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { error: 'Too many API requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return getClientIP(req);
+    return req.ip;
   },
 });
 
-// Admin route rate limiter (stricter for admin operations)
 export const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Limit each IP to 50 admin requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 50,
   message: 'Too many admin requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return getClientIP(req);
+    return req.ip;
   },
 });

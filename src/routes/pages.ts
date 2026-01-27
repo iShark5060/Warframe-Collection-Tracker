@@ -55,6 +55,7 @@ export function registerPageRoutes(app: Application): void {
         error: '',
         lockedOut,
         lockoutRemaining,
+        csrfToken: req.csrfToken?.() ?? '',
         esc,
       });
     },
@@ -76,6 +77,7 @@ export function registerPageRoutes(app: Application): void {
           error: 'Too many failed attempts. Try again later.',
           lockedOut: true,
           lockoutRemaining,
+          csrfToken: req.csrfToken?.() ?? '',
           esc,
         });
       }
@@ -97,6 +99,7 @@ export function registerPageRoutes(app: Application): void {
         error: result.error,
         lockedOut: isLockedOut(ip),
         lockoutRemaining: getLockoutRemaining(ip),
+        csrfToken: req.csrfToken?.() ?? '',
         esc,
       });
     },

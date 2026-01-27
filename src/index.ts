@@ -100,15 +100,7 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
 
 app.use(csrfSynchronisedProtection);
 
-// Generate CSRF token and make it available to templates
-app.use((req, res, next) => {
-  res.locals.csrfToken = generateToken(req);
-  next();
-});
-
-app.use('/api', apiLimiter, apiRouter);
-registerPageRoutes(app);
-
+// Static routes that don't need CSRF protection (GET requests for static files)
 app.get('/favicon.ico', generalLimiter, (req, res) => {
   const distPath = path.join(process.cwd(), 'dist', 'favicon.ico');
   const rootPath = path.join(process.cwd(), 'favicon.ico');
@@ -117,6 +109,15 @@ app.get('/favicon.ico', generalLimiter, (req, res) => {
     if (err) res.status(404).end();
   });
 });
+
+// Generate CSRF token and make it available to templates
+app.use((req, res, next) => {
+  res.locals.csrfToken = generateToken(req);
+  next();
+});
+
+app.use('/api', apiLimiter, apiRouter);
+registerPageRoutes(app);
 
 app.listen(PORT, () => {
   console.log(

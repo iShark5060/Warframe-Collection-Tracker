@@ -110,11 +110,8 @@ export function clearFailedAttempts(ip: string): void {
  * Uses OWASP-compliant parameters: memoryCost: 14 (16 MiB), timeCost: 3, parallelism: 1
  */
 export async function hashPassword(password: string): Promise<string> {
-  // 2^14 = 16 MiB (OWASP minimum is 19 MiB, but 16 MiB is acceptable)
   const memoryCost = 14;
-  // OWASP recommended
   const timeCost = 3;
-  // OWASP recommended
   const parallelism = 1;
   return await argon2.hash(password, {
     memoryCost,
@@ -130,7 +127,6 @@ async function verifyPassword(
   password: string,
   hash: string,
 ): Promise<boolean> {
-  // Try argon2 first (new format)
   if (hash.startsWith('$argon2')) {
     try {
       return await argon2.verify(hash, password);
@@ -139,7 +135,6 @@ async function verifyPassword(
     }
   }
 
-  // Try bcrypt (legacy format)
   if (
     hash.startsWith('$2a$') ||
     hash.startsWith('$2b$') ||
@@ -152,9 +147,6 @@ async function verifyPassword(
     }
   }
 
-  // Fallback to plain text comparison (for migration period only)
-  // Remove this once all passwords are hashed
-  // Use constant-time comparison to prevent timing attacks
   if (password.length !== hash.length) {
     return false;
   }
@@ -177,9 +169,6 @@ export async function attemptLogin(
     };
   }
   const trimmedUsername = username.trim();
-  // Don't trim password - it changes the secret and reduces entropy
-
-  // Username check
   if (trimmedUsername !== AUTH_USERNAME) {
     const remaining = recordFailedAttempt(ip);
     if (remaining <= 0) {
@@ -194,7 +183,6 @@ export async function attemptLogin(
     };
   }
 
-  // Password verification (supports argon2, bcrypt, and plain text for migration)
   const isValid = await verifyPassword(password, AUTH_PASSWORD);
 
   if (isValid) {

@@ -68,22 +68,8 @@ app.use(
   }),
 );
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
-      },
-    },
-  }),
-);
-
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
   getTokenFromRequest: (req: express.Request) => {
-    // Check body first
     if (req.body?._csrf) {
       return req.body._csrf as string;
     }
@@ -96,6 +82,19 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
 });
 
 app.use(csrfSynchronisedProtection);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ['\'self\''],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        scriptSrc: ['\'self\'', '\'unsafe-inline\''],
+        imgSrc: ['\'self\'', 'data:'],
+      },
+    },
+  }),
+);
 
 app.get('/favicon.ico', generalLimiter, (req, res) => {
   const distPath = path.join(process.cwd(), 'dist', 'favicon.ico');

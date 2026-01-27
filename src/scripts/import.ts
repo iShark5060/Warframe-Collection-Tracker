@@ -19,8 +19,8 @@ import {
   CSV_DELIMITER,
   SQLITE_DB_PATH,
   VALID_STATUSES,
-} from '../config';
-import { createSchema } from '../db/schema';
+} from '../config.js';
+import { createSchema } from '../db/schema.js';
 
 loadEnv();
 

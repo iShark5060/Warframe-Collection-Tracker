@@ -7,7 +7,7 @@ import {
   AUTH_LOCKOUT_MINUTES,
   AUTH_USERNAME,
   AUTH_PASSWORD,
-} from './config';
+} from './config.js';
 
 export interface SessionUser {
   authenticated: true;

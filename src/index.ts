@@ -4,9 +4,9 @@ import session from 'express-session';
 import lusca from 'lusca';
 import path from 'path';
 
-import { apiLimiter, generalLimiter } from './middleware/rateLimit';
-import { apiRouter } from './routes/apiRouter';
-import { registerPageRoutes } from './routes/pages';
+import { apiLimiter, generalLimiter } from './middleware/rateLimit.js';
+import { apiRouter } from './routes/apiRouter.js';
+import { registerPageRoutes } from './routes/pages.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000', 10);

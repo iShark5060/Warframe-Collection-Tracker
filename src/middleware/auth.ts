@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { isAuthenticated } from '../auth';
+import { isAuthenticated } from '../auth.js';
 
 export function requireAuth(
   req: Request,

@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 
-import { SQLITE_DB_PATH } from '../config';
+import { SQLITE_DB_PATH } from '../config.js';
 
 export function createSchema(db: Database.Database): void {
   db.exec(`

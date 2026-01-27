@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import session from 'express-session';
 import path from 'path';
+import lusca from 'lusca';
 
 import { apiRouter } from './routes/apiRouter';
 import { registerPageRoutes } from './routes/pages';
@@ -39,6 +40,8 @@ app.use(
     },
   }),
 );
+
+app.use(lusca.csrf());
 
 app.use('/api', apiRouter);
 registerPageRoutes(app);

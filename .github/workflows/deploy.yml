@@ -1,0 +1,80 @@
+name: Deploy Warframe Collection Tracker
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package*.json'
+      - 'ecosystem.config.cjs'
+      - 'tsconfig.json'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '25'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run check-format
+
+      - name: List built files (debug)
+        run: ls -la dist/
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          mkdir -p /tmp/deploy
+          cp -r dist/ /tmp/deploy/
+          cp package*.json /tmp/deploy/
+          cp -r node_modules/ /tmp/deploy/
+          cp ecosystem.config.cjs /tmp/deploy/
+
+          rsync -av --delete \
+            --exclude='.env' \
+            --exclude='.env.local' \
+            --exclude='logs/' \
+            --exclude='data/' \
+            --exclude='import/' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            /tmp/deploy/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_PATH }}/
+
+      - name: Restart PM2
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cd ${{ secrets.SERVER_PATH }} && source ~/.nvm/nvm.sh && pm2 restart 'Warframe Collection' --update-env"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

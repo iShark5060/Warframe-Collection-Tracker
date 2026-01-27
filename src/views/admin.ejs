@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><%= appName %> - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+    :root {
+        --bg: #0b0f14;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #0ea5e9;
+        --danger: #ef4444;
+        --unavailable: #6b7280;
+        --shadow: 0 2px 2px rgba(0,0,0,0.15);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 24px;
+        color: var(--text);
+        background: linear-gradient(to bottom, #272b36 0%, #050507 100%);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .bg-art {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        white-space: pre;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 10px;
+        line-height: 1.2;
+        color: rgba(255, 255, 255, 0.05);
+        z-index: 0;
+        pointer-events: none;
+        user-select: none;
+    }
+    .container { width: 100%; max-width: 1400px; position: relative; z-index: 1; }
+    header { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    h1 { margin: 0; font-size: 1.5rem; letter-spacing: .2px; }
+    .admin-badge {
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 6px;
+    }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .search-wrapper { position: relative; display: inline-block; }
+    .search-box {
+        padding: 8px 32px 8px 14px;
+        font-size: 14px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        outline: none;
+        width: 200px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .search-box:focus { border-color: rgba(255, 255, 255, 0.2); }
+    .search-box::placeholder { color: var(--muted); }
+    .search-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .search-clear:hover { color: var(--text); }
+    .search-clear.visible { display: flex; }
+    .btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-primary { color: var(--text); background: var(--accent); border-color: var(--accent); }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-secondary { color: var(--muted); background: transparent; }
+    .btn-secondary:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.2); }
+    .btn-danger { color: var(--danger); background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+    .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        padding: 6px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .tab {
+        padding: 10px 20px;
+        font-size: 14px;
+        color: var(--muted);
+        background: transparent;
+        border: none;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+    .tab.active { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+    .table-container {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .table-scroll { max-height: calc(100vh - 280px); overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 16px; text-align: left; }
+    thead { position: sticky; top: 0; z-index: 10; }
+    thead th {
+        background: rgba(30, 35, 45, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        color: var(--muted);
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    thead th:not(:first-child):not(:last-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+    tbody tr:last-child { border-bottom: none; }
+    .item-name { font-weight: 500; }
+    .status-select {
+        padding: 6px 10px;
+        font-size: 13px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        cursor: pointer;
+        min-width: 100px;
+    }
+    .status-select:focus { outline: none; border-color: var(--accent); }
+    .status-select option { background: #1f2937; color: var(--text); }
+    .row-actions { display: flex; gap: 6px; white-space: nowrap; }
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .error { text-align: center; padding: 40px; color: var(--danger); }
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal {
+        background: #1f2937;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 24px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .modal h2 { margin: 0 0 20px 0; font-size: 1.25rem; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+    .form-group select option { background: #1f2937; }
+    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    @media (max-width: 768px) {
+        body { padding: 16px; }
+        h1 { font-size: 1.25rem; }
+        .search-box { width: 150px; }
+        th, td { padding: 10px 12px; }
+    }
+    .table-scroll::-webkit-scrollbar { width: 8px; }
+    .table-scroll::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+    .table-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    .table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+    </style>
+</head>
+<body>
+    <% if (art) { %><div class="bg-art"><%- art %></div><% } %>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <h1><%= appName %></h1>
+                <span class="admin-badge">ADMIN</span>
+            </div>
+            <div class="header-actions">
+                <div class="search-wrapper">
+                    <input type="text" class="search-box" id="search" placeholder="Search...">
+                    <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+                </div>
+                <button class="btn btn-primary" id="add-btn">+ Add Item</button>
+                <a href="/" class="btn btn-secondary">Back to View</a>
+            </div>
+        </header>
+        <div class="tabs" id="tabs"><div class="loading">Loading tabs...</div></div>
+        <div class="table-container">
+            <div class="table-scroll">
+                <table>
+                    <thead id="table-head"><tr><th>Loading...</th></tr></thead>
+                    <tbody id="table-body"><tr><td class="loading">Loading data...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h2 id="modal-title">Add Item</h2>
+            <form id="item-form">
+                <input type="hidden" id="form-row-id">
+                <div class="form-group">
+                    <label for="form-name">Item Name</label>
+                    <input type="text" id="form-name" required>
+                </div>
+                <div id="form-columns"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="modal-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="modal-overlay" id="delete-modal">
+        <div class="modal">
+            <h2>Delete Item</h2>
+            <p>Are you sure you want to delete "<span id="delete-item-name"></span>"?</p>
+            <p style="color: var(--muted); font-size: 14px;">This action cannot be undone.</p>
+            <input type="hidden" id="delete-row-id">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="delete-cancel">Cancel</button>
+                <button type="button" class="btn btn-danger" id="delete-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    const API_URL = '/api';
+    const VALID_STATUSES = ['', 'Obtained', 'Complete', 'Unavailable'];
+    const tabOrder = ['Warframes', 'Primary Weapons', 'Secondary Weapons', 'Melee Weapons', 'Modular Weapons', 'Archwing Weapons', 'Accessories'];
+    let worksheets = [];
+    let currentWorksheet = null;
+    let currentData = null;
+    let searchTerm = '';
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    async function init() {
+        await loadWorksheets();
+        const searchInput = document.getElementById('search');
+        const searchClear = document.getElementById('search-clear');
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value.toLowerCase();
+            searchClear.classList.toggle('visible', e.target.value.length > 0);
+            renderTable();
+        });
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            searchTerm = '';
+            searchClear.classList.remove('visible');
+            renderTable();
+        });
+        document.getElementById('add-btn').addEventListener('click', () => openAddModal());
+        document.getElementById('modal-cancel').addEventListener('click', closeModal);
+        document.getElementById('item-form').addEventListener('submit', handleFormSubmit);
+        document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+        document.getElementById('delete-cancel').addEventListener('click', closeDeleteModal);
+        document.getElementById('delete-confirm').addEventListener('click', handleDelete);
+        document.getElementById('delete-modal').addEventListener('click', (e) => { if (e.target.id === 'delete-modal') closeDeleteModal(); });
+    }
+
+    async function loadWorksheets() {
+        try {
+            const response = await fetch(`${API_URL}?action=worksheets`);
+            const data = await response.json();
+            if (data.error) { showError(data.error); return; }
+            worksheets = data.worksheets;
+            worksheets.forEach(w => { w.name = w.name.replace(/^\uFEFF/, '').trim(); });
+            worksheets.sort((a, b) => {
+                const indexA = tabOrder.indexOf(a.name) === -1 ? 999 : tabOrder.indexOf(a.name);
+                const indexB = tabOrder.indexOf(b.name) === -1 ? 999 : tabOrder.indexOf(b.name);
+                return indexA - indexB;
+            });
+            renderTabs();
+            if (worksheets.length > 0) selectWorksheet(worksheets[0].id);
+        } catch (err) { showError('Failed to load worksheets: ' + err.message); }
+    }
+
+    function renderTabs() {
+        const tabsContainer = document.getElementById('tabs');
+        tabsContainer.innerHTML = worksheets.map(ws =>
+            `<button class="tab" data-id="${ws.id}">${escapeHtml(ws.name)}</button>`
+        ).join('');
+        tabsContainer.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => selectWorksheet(parseInt(tab.dataset.id)));
+        });
+    }
+
+    async function selectWorksheet(id) {
+        currentWorksheet = id;
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.toggle('active', parseInt(tab.dataset.id) === id);
+        });
+        await loadData(id);
+    }
+
+    async function loadData(worksheetId) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '<tr><td class="loading">Loading data...</td></tr>';
+        try {
+            const response = await fetch(`${API_URL}?action=data&worksheet=${worksheetId}`);
+            const data = await response.json();
+            if (data.error) { showError(data.error); return; }
+            currentData = data;
+            renderTable();
+        } catch (err) { showError('Failed to load data: ' + err.message); }
+    }
+
+    function renderTable() {
+        if (!currentData) return;
+        const thead = document.getElementById('table-head');
+        const tbody = document.getElementById('table-body');
+        thead.innerHTML = `<tr><th>Name</th>${currentData.columns.map(col => `<th>${escapeHtml(col.name)}</th>`).join('')}<th>Actions</th></tr>`;
+        let rows = currentData.rows;
+        if (searchTerm) rows = rows.filter(row => row.name.toLowerCase().includes(searchTerm));
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${currentData.columns.length + 2}" class="loading">No items found.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(row => `
+            <tr data-row-id="${row.id}">
+                <td class="item-name">${escapeHtml(row.name)}</td>
+                ${currentData.columns.map(col => {
+                    const value = row.values[col.id] || '';
+                    return `<td>
+                        <select class="status-select" data-row-id="${row.id}" data-column-id="${col.id}">
+                            ${VALID_STATUSES.map(status =>
+                                `<option value="${status}" ${value === status ? 'selected' : ''}>${status || '(none)'}</option>`
+                            ).join('')}
+                        </select>
+                    </td>`;
+                }).join('')}
+                <td class="row-actions">
+                    <button class="btn btn-sm btn-secondary edit-btn" data-row-id="${row.id}">Edit</button>
+                    <button class="btn btn-sm btn-danger delete-btn" data-row-id="${row.id}" data-name="${escapeHtml(row.name)}">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+        tbody.querySelectorAll('.status-select').forEach(select => {
+            select.addEventListener('change', (e) => handleStatusChange(e.target));
+        });
+        tbody.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.rowId)));
+        });
+        tbody.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => openDeleteModal(parseInt(btn.dataset.rowId), btn.dataset.name));
+        });
+    }
+
+    async function handleStatusChange(select) {
+        const rowId = parseInt(select.dataset.rowId);
+        const columnId = parseInt(select.dataset.columnId);
+        const value = select.value;
+        try {
+            const response = await fetch(`${API_URL}?action=admin_update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row_id: rowId, column_id: columnId, value })
+            });
+            const result = await response.json();
+            if (result.error) {
+                alert('Error: ' + result.error);
+                loadData(currentWorksheet);
+            } else {
+                const row = currentData.rows.find(r => r.id === rowId);
+                if (row) row.values[columnId] = value;
+            }
+        } catch (err) {
+            alert('Failed to save: ' + err.message);
+            loadData(currentWorksheet);
+        }
+    }
+
+    function openAddModal() {
+        document.getElementById('modal-title').textContent = 'Add Item';
+        document.getElementById('form-row-id').value = '';
+        document.getElementById('form-name').value = '';
+        const columnsDiv = document.getElementById('form-columns');
+        columnsDiv.innerHTML = currentData.columns.map(col => `
+            <div class="form-group">
+                <label for="form-col-${col.id}">${escapeHtml(col.name)}</label>
+                <select id="form-col-${col.id}">
+                    ${VALID_STATUSES.map(status => `<option value="${status}">${status || '(none)'}</option>`).join('')}
+                </select>
+            </div>
+        `).join('');
+        document.getElementById('modal').classList.add('active');
+        document.getElementById('form-name').focus();
+    }
+
+    function openEditModal(rowId) {
+        const row = currentData.rows.find(r => r.id === rowId);
+        if (!row) return;
+        document.getElementById('modal-title').textContent = 'Edit Item';
+        document.getElementById('form-row-id').value = rowId;
+        document.getElementById('form-name').value = row.name;
+        const columnsDiv = document.getElementById('form-columns');
+        columnsDiv.innerHTML = currentData.columns.map(col => {
+            const value = row.values[col.id] || '';
+            return `<div class="form-group">
+                <label for="form-col-${col.id}">${escapeHtml(col.name)}</label>
+                <select id="form-col-${col.id}">
+                    ${VALID_STATUSES.map(status =>
+                        `<option value="${status}" ${value === status ? 'selected' : ''}>${status || '(none)'}</option>`
+                    ).join('')}
+                </select>
+            </div>`;
+        }).join('');
+        document.getElementById('modal').classList.add('active');
+        document.getElementById('form-name').focus();
+    }
+
+    function closeModal() { document.getElementById('modal').classList.remove('active'); }
+
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const rowId = document.getElementById('form-row-id').value;
+        const itemName = document.getElementById('form-name').value.trim();
+        if (!itemName) { alert('Item name is required'); return; }
+        const values = {};
+        currentData.columns.forEach(col => {
+            values[col.id] = document.getElementById(`form-col-${col.id}`).value;
+        });
+        try {
+            let action, body;
+            if (rowId) {
+                action = 'edit_row';
+                body = { row_id: parseInt(rowId), item_name: itemName, values };
+            } else {
+                action = 'add_row';
+                body = { worksheet_id: currentWorksheet, item_name: itemName, values };
+            }
+            const response = await fetch(`${API_URL}?action=${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await response.json();
+            if (result.error) alert('Error: ' + result.error);
+            else { closeModal(); await loadData(currentWorksheet); }
+        } catch (err) { alert('Failed to save: ' + err.message); }
+    }
+
+    function openDeleteModal(rowId, name) {
+        document.getElementById('delete-row-id').value = rowId;
+        document.getElementById('delete-item-name').textContent = name;
+        document.getElementById('delete-modal').classList.add('active');
+    }
+
+    function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('active'); }
+
+    async function handleDelete() {
+        const rowId = parseInt(document.getElementById('delete-row-id').value);
+        try {
+            const response = await fetch(`${API_URL}?action=delete_row`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row_id: rowId })
+            });
+            const result = await response.json();
+            if (result.error) alert('Error: ' + result.error);
+            else { closeDeleteModal(); await loadData(currentWorksheet); }
+        } catch (err) { alert('Failed to delete: ' + err.message); }
+    }
+
+    function showError(message) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = `<tr><td class="error">${escapeHtml(message)}</td></tr>`;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    </script>
+</body>
+</html>

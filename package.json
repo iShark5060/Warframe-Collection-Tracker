@@ -1,0 +1,56 @@
+{
+  "name": "warframe-collection-tracker",
+  "version": "1.0.0",
+  "description": "Warframe collection tracker",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "import": "ts-node src/scripts/import.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "check-format": "prettier --check ."
+  },
+  "keywords": [
+    "warframe",
+    "tracker",
+    "collection"
+  ],
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "better-sqlite3": "^11.6.0",
+    "cookie-parser": "^1.4.7",
+    "@dotenvx/dotenvx": "^1.51.4",
+    "ejs": "^3.1.10",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.18.0",
+    "@types/node": "^22.9.0",
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.23.2",
+    "eslint-plugin-promise": "^7.2.1",
+    "prettier": "^3.8.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=25.0.0",
+    "npm": ">=11.0.0"
+  },
+  "overrides": {
+    "tar": "^6.2.0"
+  }
+}

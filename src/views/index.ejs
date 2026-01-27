@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><%= appName %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+    :root {
+        --bg: #0b0f14;
+        --panel: rgba(17, 24, 39, 0.25);
+        --select-bg: #111827;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --border: rgba(31, 41, 55, 0.25);
+        --accent: #0ea5e9;
+        --accent-weak: rgba(14, 165, 233, 0.15);
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --unavailable: #6b7280;
+        --shadow: 0 2px 2px rgba(0,0,0,0.15);
+        --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        padding: 24px;
+        color: var(--text);
+        background: linear-gradient(to bottom, #272b36 0%, #050507 100%);
+        background-size: 100% 100%;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .bg-art {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        white-space: pre;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 10px;
+        line-height: 1.2;
+        color: rgba(255, 255, 255, 0.05);
+        z-index: 0;
+        pointer-events: none;
+        user-select: none;
+    }
+    .container { width: 100%; max-width: 1200px; position: relative; z-index: 1; }
+    header { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 1.5rem; letter-spacing: .2px; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .search-wrapper { position: relative; display: inline-block; }
+    .search-box {
+        padding: 8px 32px 8px 14px;
+        font-size: 14px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        outline: none;
+        width: 200px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .search-box:focus { border-color: rgba(255, 255, 255, 0.2); }
+    .search-box::placeholder { color: var(--muted); }
+    .search-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .search-clear:hover { color: var(--text); }
+    .search-clear.visible { display: flex; }
+    .admin-link {
+        padding: 8px 16px;
+        font-size: 14px;
+        color: var(--muted);
+        text-decoration: none;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        transition: all 0.2s;
+    }
+    .admin-link:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.2); }
+    .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        padding: 6px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .tab {
+        padding: 10px 20px;
+        font-size: 14px;
+        color: var(--muted);
+        background: transparent;
+        border: none;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+    .tab.active { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+    .table-container {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .table-scroll { max-height: calc(100vh - 280px); overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 16px; text-align: left; }
+    thead { position: sticky; top: 0; z-index: 10; }
+    thead th {
+        background: rgba(30, 35, 45, 0.92);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        color: var(--muted);
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    thead th:not(:first-child) { text-align: center; }
+    tbody tr { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+    tbody tr:last-child { border-bottom: none; }
+    .item-name { font-weight: 500; }
+    .status-cell { text-align: center; }
+    .status-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 90px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .status-btn.empty { color: var(--muted); background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.1); }
+    .status-btn.empty:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.2); }
+    .status-btn.obtained { color: #fbbf24; background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.3); }
+    .status-btn.obtained:hover { background: rgba(251, 191, 36, 0.15); }
+    .status-btn.complete { color: #4ade80; background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.3); }
+    .status-btn.complete:hover { background: rgba(74, 222, 128, 0.15); }
+    .status-btn.unavailable {
+        color: var(--unavailable);
+        background: rgba(107, 114, 128, 0.1);
+        border-color: transparent;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .loading { text-align: center; padding: 40px; color: var(--muted); }
+    .error { text-align: center; padding: 40px; color: var(--danger); }
+    .stats-bar { display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
+    .stat { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+    .stat-value { color: var(--text); font-weight: 600; }
+    .stat-complete { color: #4ade80; }
+    .stat-obtained { color: #fbbf24; }
+    @media (max-width: 768px) {
+        body { padding: 16px; }
+        h1 { font-size: 1.25rem; }
+        .search-box { width: 150px; }
+        th, td { padding: 10px 12px; }
+        .status-btn { min-width: 70px; padding: 5px 8px; font-size: 12px; }
+    }
+    .table-scroll::-webkit-scrollbar { width: 8px; }
+    .table-scroll::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+    .table-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+    .table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15); }
+    </style>
+</head>
+<body>
+    <% if (art) { %><div class="bg-art"><%- art %></div><% } %>
+    <div class="container">
+        <header>
+            <h1><%= appName %></h1>
+            <div class="header-actions">
+                <div class="search-wrapper">
+                    <input type="text" class="search-box" id="search" placeholder="Search...">
+                    <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
+                </div>
+                <a href="/admin" class="admin-link">Admin</a>
+                <a href="/logout" class="admin-link">Logout</a>
+            </div>
+        </header>
+        <div class="tabs" id="tabs"><div class="loading">Loading tabs...</div></div>
+        <div class="stats-bar" id="stats"></div>
+        <div class="table-container">
+            <div class="table-scroll">
+                <table>
+                    <thead id="table-head"><tr><th>Loading...</th></tr></thead>
+                    <tbody id="table-body"><tr><td class="loading">Loading data...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+    const API_URL = '/api';
+    let worksheets = [];
+    let currentWorksheet = null;
+    let currentData = null;
+    let searchTerm = '';
+    const statusCycle = ['', 'Obtained', 'Complete'];
+    const tabOrder = ['Warframes', 'Primary Weapons', 'Secondary Weapons', 'Melee Weapons', 'Modular Weapons', 'Archwing Weapons', 'Accessories'];
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    async function init() {
+        await loadWorksheets();
+        const searchInput = document.getElementById('search');
+        const searchClear = document.getElementById('search-clear');
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value.toLowerCase();
+            searchClear.classList.toggle('visible', e.target.value.length > 0);
+            renderTable();
+        });
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            searchTerm = '';
+            searchClear.classList.remove('visible');
+            renderTable();
+        });
+    }
+
+    async function loadWorksheets() {
+        try {
+            const response = await fetch(`${API_URL}?action=worksheets`);
+            const data = await response.json();
+            if (data.error) { showError(data.error); return; }
+            worksheets = data.worksheets;
+            worksheets.forEach(w => { w.name = w.name.replace(/^\uFEFF/, '').trim(); });
+            worksheets.sort((a, b) => {
+                const indexA = tabOrder.indexOf(a.name) === -1 ? 999 : tabOrder.indexOf(a.name);
+                const indexB = tabOrder.indexOf(b.name) === -1 ? 999 : tabOrder.indexOf(b.name);
+                return indexA - indexB;
+            });
+            renderTabs();
+            if (worksheets.length > 0) selectWorksheet(worksheets[0].id);
+        } catch (err) { showError('Failed to load worksheets: ' + err.message); }
+    }
+
+    function renderTabs() {
+        const tabsContainer = document.getElementById('tabs');
+        tabsContainer.innerHTML = worksheets.map(ws =>
+            `<button class="tab" data-id="${ws.id}">${escapeHtml(ws.name)}</button>`
+        ).join('');
+        tabsContainer.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => selectWorksheet(parseInt(tab.dataset.id)));
+        });
+    }
+
+    async function selectWorksheet(id) {
+        currentWorksheet = id;
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.toggle('active', parseInt(tab.dataset.id) === id);
+        });
+        await loadData(id);
+    }
+
+    async function loadData(worksheetId) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '<tr><td class="loading">Loading data...</td></tr>';
+        try {
+            const response = await fetch(`${API_URL}?action=data&worksheet=${worksheetId}`);
+            const data = await response.json();
+            if (data.error) { showError(data.error); return; }
+            currentData = data;
+            renderTable();
+            renderStats();
+        } catch (err) { showError('Failed to load data: ' + err.message); }
+    }
+
+    function renderTable() {
+        if (!currentData) return;
+        const thead = document.getElementById('table-head');
+        const tbody = document.getElementById('table-body');
+        thead.innerHTML = `<tr><th>Name</th>${currentData.columns.map(col => `<th>${escapeHtml(col.name)}</th>`).join('')}</tr>`;
+        let rows = currentData.rows;
+        if (searchTerm) rows = rows.filter(row => row.name.toLowerCase().includes(searchTerm));
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${currentData.columns.length + 1}" class="loading">No items found.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(row => `
+            <tr data-row-id="${row.id}">
+                <td class="item-name">${escapeHtml(row.name)}</td>
+                ${currentData.columns.map(col => {
+                    const value = row.values[col.id] || '';
+                    const statusClass = value.toLowerCase() || 'empty';
+                    const isUnavailable = value === 'Unavailable';
+                    const displayText = value || '—';
+                    return `<td class="status-cell">
+                        <button class="status-btn ${statusClass}" data-row-id="${row.id}" data-column-id="${col.id}" data-value="${escapeHtml(value)}" ${isUnavailable ? 'disabled' : ''}>${displayText}</button>
+                    </td>`;
+                }).join('')}
+            </tr>
+        `).join('');
+        tbody.querySelectorAll('.status-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', () => toggleStatus(btn));
+        });
+    }
+
+    function renderStats() {
+        if (!currentData) return;
+        const statsContainer = document.getElementById('stats');
+        const stats = {};
+        currentData.columns.forEach(col => { stats[col.id] = { name: col.name, total: 0, complete: 0, obtained: 0, unavailable: 0 }; });
+        currentData.rows.forEach(row => {
+            currentData.columns.forEach(col => {
+                const value = row.values[col.id] || '';
+                stats[col.id].total++;
+                if (value === 'Complete') stats[col.id].complete++;
+                else if (value === 'Obtained') stats[col.id].obtained++;
+                else if (value === 'Unavailable') stats[col.id].unavailable++;
+            });
+        });
+        statsContainer.innerHTML = currentData.columns.map(col => {
+            const s = stats[col.id];
+            const available = s.total - s.unavailable;
+            const pct = available > 0 ? Math.round((s.complete / available) * 100) : 0;
+            return `<div class="stat">
+                <span>${escapeHtml(col.name)}:</span>
+                <span class="stat-value stat-complete">${s.complete}</span>/<span class="stat-value">${available}</span>
+                <span>(${pct}%)</span>
+                ${s.obtained > 0 ? `<span class="stat-obtained">+${s.obtained} in progress</span>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    async function toggleStatus(btn) {
+        const rowId = parseInt(btn.dataset.rowId);
+        const columnId = parseInt(btn.dataset.columnId);
+        const currentValue = btn.dataset.value;
+        const currentIndex = statusCycle.indexOf(currentValue);
+        const nextIndex = (currentIndex + 1) % statusCycle.length;
+        const newValue = statusCycle[nextIndex];
+        btn.dataset.value = newValue;
+        btn.className = 'status-btn ' + (newValue.toLowerCase() || 'empty');
+        btn.textContent = newValue || '—';
+        const row = currentData.rows.find(r => r.id === rowId);
+        if (row) row.values[columnId] = newValue;
+        renderStats();
+        try {
+            const response = await fetch(`${API_URL}?action=update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ row_id: rowId, column_id: columnId, value: newValue })
+            });
+            const result = await response.json();
+            if (result.error) {
+                btn.dataset.value = currentValue;
+                btn.className = 'status-btn ' + (currentValue.toLowerCase() || 'empty');
+                btn.textContent = currentValue || '—';
+                if (row) row.values[columnId] = currentValue;
+                renderStats();
+                alert('Error: ' + result.error);
+            }
+        } catch (err) {
+            btn.dataset.value = currentValue;
+            btn.className = 'status-btn ' + (currentValue.toLowerCase() || 'empty');
+            btn.textContent = currentValue || '—';
+            if (row) row.values[columnId] = currentValue;
+            renderStats();
+            alert('Failed to save: ' + err.message);
+        }
+    }
+
+    function showError(message) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = `<tr><td class="error">${escapeHtml(message)}</td></tr>`;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    </script>
+</body>
+</html>

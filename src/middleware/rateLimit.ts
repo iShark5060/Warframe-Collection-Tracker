@@ -27,7 +27,9 @@ export const loginLimiter = rateLimit({
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
-  message: { error: 'Too many API requests from this IP, please try again later.' },
+  message: {
+    error: 'Too many API requests from this IP, please try again later.',
+  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {

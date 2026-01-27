@@ -4,6 +4,7 @@ import session from 'express-session';
 import path from 'path';
 import lusca from 'lusca';
 
+import { apiLimiter } from './middleware/rateLimit';
 import { apiRouter } from './routes/apiRouter';
 import { registerPageRoutes } from './routes/pages';
 
@@ -43,7 +44,7 @@ app.use(
 
 app.use(lusca.csrf());
 
-app.use('/api', apiRouter);
+app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
 app.get('/favicon.ico', (req, res) => {

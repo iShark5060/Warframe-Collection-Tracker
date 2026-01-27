@@ -10,6 +10,11 @@ import {
 } from '../auth';
 import { APP_NAME } from '../config';
 import { requireAuth, redirectIfAuthenticated } from '../middleware/auth';
+import {
+  generalLimiter,
+  loginLimiter,
+  adminLimiter,
+} from '../middleware/rateLimit';
 
 const BACKGROUND_PATH = path.join(process.cwd(), 'background.txt');
 
@@ -36,68 +41,88 @@ function esc(s: unknown): string {
 export function registerPageRoutes(app: Application): void {
   const art = getBackgroundArt();
 
-  app.get('/login', redirectIfAuthenticated, (req: Request, res: Response) => {
-    const ip = getClientIP(req);
-    const lockedOut = isLockedOut(ip);
-    const lockoutRemaining = getLockoutRemaining(ip);
-    res.render('login', {
-      appName: APP_NAME,
-      art,
-      error: '',
-      lockedOut,
-      lockoutRemaining,
-      esc,
-    });
-  });
-
-  app.post('/login', redirectIfAuthenticated, (req: Request, res: Response) => {
-    const ip = getClientIP(req);
-    const lockedOut = isLockedOut(ip);
-    const lockoutRemaining = getLockoutRemaining(ip);
-
-    if (lockedOut) {
-      return res.render('login', {
+  app.get(
+    '/login',
+    generalLimiter,
+    redirectIfAuthenticated,
+    (req: Request, res: Response) => {
+      const ip = getClientIP(req);
+      const lockedOut = isLockedOut(ip);
+      const lockoutRemaining = getLockoutRemaining(ip);
+      res.render('login', {
         appName: APP_NAME,
         art,
-        error: 'Too many failed attempts. Try again later.',
-        lockedOut: true,
+        error: '',
+        lockedOut,
         lockoutRemaining,
         esc,
       });
-    }
+    },
+  );
 
-    const username = String(req.body?.username ?? '').trim();
-    const password = String(req.body?.password ?? '');
+  app.post(
+    '/login',
+    loginLimiter,
+    redirectIfAuthenticated,
+    (req: Request, res: Response) => {
+      const ip = getClientIP(req);
+      const lockedOut = isLockedOut(ip);
+      const lockoutRemaining = getLockoutRemaining(ip);
 
-    const result = attemptLogin(username, password, ip);
+      if (lockedOut) {
+        return res.render('login', {
+          appName: APP_NAME,
+          art,
+          error: 'Too many failed attempts. Try again later.',
+          lockedOut: true,
+          lockoutRemaining,
+          esc,
+        });
+      }
 
-    if (result.success) {
-      req.session.authenticated = true;
-      req.session.loginTime = Math.floor(Date.now() / 1000);
-      return res.redirect('/');
-    }
+      const username = String(req.body?.username ?? '').trim();
+      const password = String(req.body?.password ?? '');
 
-    return res.render('login', {
-      appName: APP_NAME,
-      art,
-      error: result.error,
-      lockedOut: isLockedOut(ip),
-      lockoutRemaining: getLockoutRemaining(ip),
-      esc,
-    });
-  });
+      const result = attemptLogin(username, password, ip);
 
-  app.get('/logout', (req: Request, res: Response) => {
+      if (result.success) {
+        req.session.authenticated = true;
+        req.session.loginTime = Math.floor(Date.now() / 1000);
+        return res.redirect('/');
+      }
+
+      return res.render('login', {
+        appName: APP_NAME,
+        art,
+        error: result.error,
+        lockedOut: isLockedOut(ip),
+        lockoutRemaining: getLockoutRemaining(ip),
+        esc,
+      });
+    },
+  );
+
+  app.get('/logout', generalLimiter, (req: Request, res: Response) => {
     req.session.destroy(() => {
       res.redirect('/login');
     });
   });
 
-  app.get('/', requireAuth, (_req: Request, res: Response) => {
-    res.render('index', { appName: APP_NAME, art, esc });
-  });
+  app.get(
+    '/',
+    generalLimiter,
+    requireAuth,
+    (_req: Request, res: Response) => {
+      res.render('index', { appName: APP_NAME, art, esc });
+    },
+  );
 
-  app.get('/admin', requireAuth, (_req: Request, res: Response) => {
-    res.render('admin', { appName: APP_NAME, art, esc });
-  });
+  app.get(
+    '/admin',
+    adminLimiter,
+    requireAuth,
+    (_req: Request, res: Response) => {
+      res.render('admin', { appName: APP_NAME, art, esc });
+    },
+  );
 }

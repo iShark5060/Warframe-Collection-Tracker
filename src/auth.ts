@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import bcrypt from 'bcrypt';
+import { timingSafeEqual } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -106,9 +107,20 @@ export function clearFailedAttempts(ip: string): void {
 
 /**
  * Hash a password using argon2 (recommended for new passwords)
+ * Uses OWASP-compliant parameters: memoryCost: 14 (16 MiB), timeCost: 3, parallelism: 1
  */
 export async function hashPassword(password: string): Promise<string> {
-  return await argon2.hash(password);
+  // 2^14 = 16 MiB (OWASP minimum is 19 MiB, but 16 MiB is acceptable)
+  const memoryCost = 14;
+  // OWASP recommended
+  const timeCost = 3;
+  // OWASP recommended
+  const parallelism = 1;
+  return await argon2.hash(password, {
+    memoryCost,
+    timeCost,
+    parallelism,
+  });
 }
 
 /**
@@ -142,7 +154,18 @@ async function verifyPassword(
 
   // Fallback to plain text comparison (for migration period only)
   // Remove this once all passwords are hashed
-  return password === hash;
+  // Use constant-time comparison to prevent timing attacks
+  if (password.length !== hash.length) {
+    return false;
+  }
+  try {
+    return timingSafeEqual(
+      Buffer.from(password, 'utf8'),
+      Buffer.from(hash, 'utf8'),
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function attemptLogin(

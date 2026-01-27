@@ -73,10 +73,10 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
+        defaultSrc: ['\'self\''],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        scriptSrc: ['\'self\'', '\'unsafe-inline\''],
+        imgSrc: ['\'self\'', 'data:'],
       },
     },
   }),
@@ -85,7 +85,16 @@ app.use(
 // CSRF protection - must be after session middleware
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
   getTokenFromRequest: (req) => {
-    return (req.body?._csrf as string) || req.headers['x-csrf-token'];
+    // Check body first
+    if (req.body?._csrf) {
+      return req.body._csrf as string;
+    }
+    // Normalize header to handle array values
+    const header = req.headers['x-csrf-token'];
+    if (Array.isArray(header)) {
+      return header[0] ?? null;
+    }
+    return (header as string | undefined) ?? null;
   },
 });
 

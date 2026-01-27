@@ -1,10 +1,10 @@
+import Database from 'better-sqlite3';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import session from 'express-session';
-import Database from 'better-sqlite3';
 import lusca from 'lusca';
-import path from 'path';
 import { createRequire } from 'module';
+import path from 'path';
 
 import { SQLITE_DB_PATH } from './config.js';
 import { apiLimiter, generalLimiter } from './middleware/rateLimit.js';
@@ -39,7 +39,7 @@ const sessionStore = new SQLiteStore({
   client: sessionDb,
   expired: {
     clear: true,
-    intervalMs: 15 * 60 * 1000, // Clean up expired sessions every 15 minutes
+    intervalMs: 15 * 60 * 1000,
   },
 });
 

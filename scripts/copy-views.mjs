@@ -30,3 +30,17 @@ function copyRecursive(srcDir, dstDir) {
 
 copyRecursive(src, dst);
 console.log(`Copied views from ${src} to ${dst}`);
+
+const additionalFiles = ['background.txt', 'favicon.ico'];
+
+for (const file of additionalFiles) {
+  const srcPath = file;
+  const dstPath = join('dist', file);
+
+  if (existsSync(srcPath)) {
+    copyFileSync(srcPath, dstPath);
+    console.log(`Copied ${srcPath} to ${dstPath}`);
+  } else {
+    console.warn(`Warning: ${srcPath} not found, skipping copy`);
+  }
+}

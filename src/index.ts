@@ -1,10 +1,10 @@
 import Database from 'better-sqlite3';
 import cookieParser from 'cookie-parser';
+import { csrfSync } from 'csrf-sync';
 import express from 'express';
 import session from 'express-session';
 import fs from 'fs';
 import helmet from 'helmet';
-import { csrfSync } from 'csrf-sync';
 import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';

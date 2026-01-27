@@ -108,7 +108,7 @@ export function clearFailedAttempts(ip: string): void {
  * Hash a password using argon2 (recommended for new passwords)
  */
 export async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password);
+  return await argon2.hash(password);
 }
 
 /**
@@ -128,7 +128,11 @@ async function verifyPassword(
   }
 
   // Try bcrypt (legacy format)
-  if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
+  if (
+    hash.startsWith('$2a$') ||
+    hash.startsWith('$2b$') ||
+    hash.startsWith('$2y$')
+  ) {
     try {
       return await bcrypt.compare(password, hash);
     } catch {

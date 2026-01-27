@@ -8,7 +8,7 @@ export const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return req.ip;
+    return req.ip ?? 'unknown';
   },
 });
 
@@ -20,7 +20,7 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   keyGenerator: (req: Request) => {
-    return req.ip;
+    return req.ip ?? 'unknown';
   },
 });
 
@@ -31,7 +31,7 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return req.ip;
+    return req.ip ?? 'unknown';
   },
 });
 
@@ -42,6 +42,6 @@ export const adminLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return req.ip;
+    return req.ip ?? 'unknown';
   },
 });

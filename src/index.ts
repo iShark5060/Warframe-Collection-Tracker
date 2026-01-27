@@ -1,8 +1,8 @@
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import session from 'express-session';
-import path from 'path';
 import lusca from 'lusca';
+import path from 'path';
 
 import { apiLimiter } from './middleware/rateLimit';
 import { apiRouter } from './routes/apiRouter';

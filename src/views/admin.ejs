@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title><%= appName %> - Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
     :root {
@@ -288,6 +289,7 @@
     </div>
     <script>
     const API_URL = '/api';
+    const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const VALID_STATUSES = ['', 'Obtained', 'Complete', 'Unavailable'];
     const tabOrder = ['Warframes', 'Primary Weapons', 'Secondary Weapons', 'Melee Weapons', 'Modular Weapons', 'Archwing Weapons', 'Accessories'];
     let worksheets = [];
@@ -416,8 +418,11 @@
         try {
             const response = await fetch(`${API_URL}?action=admin_update`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ row_id: rowId, column_id: columnId, value })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ row_id: rowId, column_id: columnId, value }),
             });
             const result = await response.json();
             if (result.error) {
@@ -494,8 +499,11 @@
             }
             const response = await fetch(`${API_URL}?action=${action}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN,
+                },
+                body: JSON.stringify(body),
             });
             const result = await response.json();
             if (result.error) alert('Error: ' + result.error);
@@ -516,8 +524,11 @@
         try {
             const response = await fetch(`${API_URL}?action=delete_row`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ row_id: rowId })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ row_id: rowId }),
             });
             const result = await response.json();
             if (result.error) alert('Error: ' + result.error);

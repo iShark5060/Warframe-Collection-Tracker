@@ -5,6 +5,7 @@ import session from 'express-session';
 import lusca from 'lusca';
 import { createRequire } from 'module';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { SQLITE_DB_PATH } from './config.js';
 import { apiLimiter, generalLimiter } from './middleware/rateLimit.js';
@@ -13,6 +14,14 @@ import { registerPageRoutes } from './routes/pages.js';
 
 const require = createRequire(import.meta.url);
 const SQLiteStore = require('better-sqlite3-session-store')(session);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Determine views directory: if running from dist/, use dist/views, otherwise src/views
+const viewsPath = __dirname.includes('dist')
+  ? path.join(process.cwd(), 'dist', 'views')
+  : path.join(process.cwd(), 'src', 'views');
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -28,7 +37,7 @@ if (TRUST_PROXY) {
 }
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(process.cwd(), 'src', 'views'));
+app.set('views', viewsPath);
 
 app.use(cookieParser());
 app.use(express.json());

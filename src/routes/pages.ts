@@ -111,16 +111,26 @@ export function registerPageRoutes(app: Application): void {
     });
   });
 
-  app.get('/', generalLimiter, requireAuth, (_req: Request, res: Response) => {
-    res.render('index', { appName: APP_NAME, art, esc });
+  app.get('/', generalLimiter, requireAuth, (req: Request, res: Response) => {
+    res.render('index', {
+      appName: APP_NAME,
+      art,
+      esc,
+      csrfToken: req.csrfToken?.() ?? '',
+    });
   });
 
   app.get(
     '/admin',
     adminLimiter,
     requireAuth,
-    (_req: Request, res: Response) => {
-      res.render('admin', { appName: APP_NAME, art, esc });
+    (req: Request, res: Response) => {
+      res.render('admin', {
+        appName: APP_NAME,
+        art,
+        esc,
+        csrfToken: req.csrfToken?.() ?? '',
+      });
     },
   );
 }

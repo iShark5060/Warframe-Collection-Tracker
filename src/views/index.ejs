@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title><%= appName %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <style>
     :root {
@@ -224,6 +225,7 @@
     </div>
     <script>
     const API_URL = '/api';
+    const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let worksheets = [];
     let currentWorksheet = null;
     let currentData = null;
@@ -371,8 +373,11 @@
         try {
             const response = await fetch(`${API_URL}?action=update`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ row_id: rowId, column_id: columnId, value: newValue })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': CSRF_TOKEN,
+                },
+                body: JSON.stringify({ row_id: rowId, column_id: columnId, value: newValue }),
             });
             const result = await response.json();
             if (result.error) {

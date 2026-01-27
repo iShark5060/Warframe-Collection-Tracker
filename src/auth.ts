@@ -1,6 +1,6 @@
 import argon2 from 'argon2';
 import bcrypt from 'bcrypt';
-import { timingSafeEqual } from 'crypto';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -159,9 +159,9 @@ async function verifyPassword(
     return false;
   }
   try {
-    return timingSafeEqual(
-      Buffer.from(password, 'utf8'),
-      Buffer.from(hash, 'utf8'),
+    return crypto.timingSafeEqual(
+      Buffer.from(password),
+      Buffer.from(hash),
     );
   } catch {
     return false;
@@ -180,7 +180,7 @@ export async function attemptLogin(
     };
   }
   const trimmedUsername = username.trim();
-  const trimmedPassword = password.trim();
+  // Don't trim password - it changes the secret and reduces entropy
 
   // Username check
   if (trimmedUsername !== AUTH_USERNAME) {
@@ -198,7 +198,7 @@ export async function attemptLogin(
   }
 
   // Password verification (supports argon2, bcrypt, and plain text for migration)
-  const isValid = await verifyPassword(trimmedPassword, AUTH_PASSWORD);
+  const isValid = await verifyPassword(password, AUTH_PASSWORD);
 
   if (isValid) {
     clearFailedAttempts(ip);

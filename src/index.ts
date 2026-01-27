@@ -18,7 +18,6 @@ const SQLiteStore = require('better-sqlite3-session-store')(session);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Determine views directory: if running from dist/, use dist/views, otherwise src/views
 const viewsPath = __dirname.includes('dist')
   ? path.join(process.cwd(), 'dist', 'views')
   : path.join(process.cwd(), 'src', 'views');

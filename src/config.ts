@@ -1,7 +1,8 @@
 import { config as loadEnv } from '@dotenvx/dotenvx';
 import path from 'path';
 
-loadEnv();
+const projectRoot = process.cwd();
+loadEnv({ path: path.join(projectRoot, '.env') });
 
 export const APP_NAME = process.env.APP_NAME ?? 'Warframe Collection Tracker';
 export const AUTH_USERNAME = process.env.AUTH_USERNAME ?? 'admin';

@@ -12,6 +12,7 @@ on:
       - 'package*.json'
       - 'ecosystem.config.cjs'
       - 'tsconfig.json'
+      - 'favicon.ico'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -58,6 +59,7 @@ jobs:
           cp package*.json /tmp/deploy/
           cp -r node_modules/ /tmp/deploy/
           cp ecosystem.config.cjs /tmp/deploy/
+          if [ -f favicon.ico ]; then cp favicon.ico /tmp/deploy/; fi
 
           rsync -av --delete \
             --exclude='.env' \

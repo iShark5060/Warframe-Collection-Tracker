@@ -1,8 +1,10 @@
 import Database from 'better-sqlite3';
 import cookieParser from 'cookie-parser';
+import { csrfSync } from 'csrf-sync';
 import express from 'express';
 import session from 'express-session';
-import lusca from 'lusca';
+import fs from 'fs';
+import helmet from 'helmet';
 import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -66,17 +68,50 @@ app.use(
   }),
 );
 
-app.use(lusca.csrf());
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+  getTokenFromRequest: (req: express.Request) => {
+    if (req.body?._csrf) {
+      return req.body._csrf as string;
+    }
+    const header = req.headers['x-csrf-token'];
+    if (Array.isArray(header)) {
+      return header[0] ?? null;
+    }
+    return (header as string | undefined) ?? null;
+  },
+});
 
-app.use('/api', apiLimiter, apiRouter);
-registerPageRoutes(app);
+app.use(csrfSynchronisedProtection);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ['\'self\''],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        scriptSrc: ['\'self\'', '\'unsafe-inline\''],
+        imgSrc: ['\'self\'', 'data:'],
+      },
+    },
+  }),
+);
 
 app.get('/favicon.ico', generalLimiter, (req, res) => {
-  const favicon = path.join(process.cwd(), 'favicon.ico');
+  const distPath = path.join(process.cwd(), 'dist', 'favicon.ico');
+  const rootPath = path.join(process.cwd(), 'favicon.ico');
+  const favicon = fs.existsSync(distPath) ? distPath : rootPath;
   res.sendFile(favicon, (err) => {
     if (err) res.status(404).end();
   });
 });
+
+app.use((req, res, next) => {
+  res.locals.csrfToken = generateToken(req);
+  next();
+});
+
+app.use('/api', apiLimiter, apiRouter);
+registerPageRoutes(app);
 
 app.listen(PORT, () => {
   console.log(

@@ -1,12 +1,18 @@
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import session from 'express-session';
+import Database from 'better-sqlite3';
 import lusca from 'lusca';
 import path from 'path';
+import { createRequire } from 'module';
 
+import { SQLITE_DB_PATH } from './config.js';
 import { apiLimiter, generalLimiter } from './middleware/rateLimit.js';
 import { apiRouter } from './routes/apiRouter.js';
 import { registerPageRoutes } from './routes/pages.js';
+
+const require = createRequire(import.meta.url);
+const SQLiteStore = require('better-sqlite3-session-store')(session);
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -28,8 +34,18 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const sessionDb = new Database(SQLITE_DB_PATH);
+const sessionStore = new SQLiteStore({
+  client: sessionDb,
+  expired: {
+    clear: true,
+    intervalMs: 15 * 60 * 1000, // Clean up expired sessions every 15 minutes
+  },
+});
+
 app.use(
   session({
+    store: sessionStore,
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,

@@ -26,6 +26,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^7.4.1",
     "express-session": "^1.18.1",
+    "better-sqlite3-session-store": "^0.1.0",
     "lusca": "^1.7.0"
   },
   "devDependencies": {

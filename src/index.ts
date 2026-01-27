@@ -2,7 +2,9 @@ import Database from 'better-sqlite3';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import session from 'express-session';
-import lusca from 'lusca';
+import fs from 'fs';
+import helmet from 'helmet';
+import { csrfSync } from 'csrf-sync';
 import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -66,13 +68,42 @@ app.use(
   }),
 );
 
-app.use(lusca.csrf());
+// Security headers - configure CSP to allow inline scripts/styles for EJS templates
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+      },
+    },
+  }),
+);
+
+// CSRF protection - must be after session middleware
+const { csrfSynchronisedProtection, generateToken } = csrfSync({
+  getTokenFromRequest: (req) => {
+    return (req.body?._csrf as string) || req.headers['x-csrf-token'];
+  },
+});
+
+app.use(csrfSynchronisedProtection);
+
+// Generate CSRF token and make it available to templates
+app.use((req, res, next) => {
+  res.locals.csrfToken = generateToken(req);
+  next();
+});
 
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
 app.get('/favicon.ico', generalLimiter, (req, res) => {
-  const favicon = path.join(process.cwd(), 'favicon.ico');
+  const distPath = path.join(process.cwd(), 'dist', 'favicon.ico');
+  const rootPath = path.join(process.cwd(), 'favicon.ico');
+  const favicon = fs.existsSync(distPath) ? distPath : rootPath;
   res.sendFile(favicon, (err) => {
     if (err) res.status(404).end();
   });

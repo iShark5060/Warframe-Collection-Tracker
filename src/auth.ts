@@ -1,3 +1,5 @@
+import argon2 from 'argon2';
+import bcrypt from 'bcrypt';
 import fs from 'fs';
 import path from 'path';
 
@@ -102,11 +104,48 @@ export function clearFailedAttempts(ip: string): void {
   }
 }
 
-export function attemptLogin(
+/**
+ * Hash a password using argon2 (recommended for new passwords)
+ */
+export async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password);
+}
+
+/**
+ * Verify a password against a hash (supports argon2, bcrypt, and plain text for migration)
+ */
+async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
+  // Try argon2 first (new format)
+  if (hash.startsWith('$argon2')) {
+    try {
+      return await argon2.verify(hash, password);
+    } catch {
+      return false;
+    }
+  }
+
+  // Try bcrypt (legacy format)
+  if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
+    try {
+      return await bcrypt.compare(password, hash);
+    } catch {
+      return false;
+    }
+  }
+
+  // Fallback to plain text comparison (for migration period only)
+  // Remove this once all passwords are hashed
+  return password === hash;
+}
+
+export async function attemptLogin(
   username: string,
   password: string,
   ip: string,
-): { success: true } | { success: false; error: string } {
+): Promise<{ success: true } | { success: false; error: string }> {
   if (isLockedOut(ip)) {
     return {
       success: false,
@@ -116,10 +155,29 @@ export function attemptLogin(
   const trimmedUsername = username.trim();
   const trimmedPassword = password.trim();
 
-  if (trimmedUsername === AUTH_USERNAME && trimmedPassword === AUTH_PASSWORD) {
+  // Username check
+  if (trimmedUsername !== AUTH_USERNAME) {
+    const remaining = recordFailedAttempt(ip);
+    if (remaining <= 0) {
+      return {
+        success: false,
+        error: `Too many failed attempts. Locked out for ${AUTH_LOCKOUT_MINUTES} minutes.`,
+      };
+    }
+    return {
+      success: false,
+      error: `Invalid username or password. ${remaining} attempt(s) remaining.`,
+    };
+  }
+
+  // Password verification (supports argon2, bcrypt, and plain text for migration)
+  const isValid = await verifyPassword(trimmedPassword, AUTH_PASSWORD);
+
+  if (isValid) {
     clearFailedAttempts(ip);
     return { success: true };
   }
+
   const remaining = recordFailedAttempt(ip);
   if (remaining <= 0) {
     return {

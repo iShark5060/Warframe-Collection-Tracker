@@ -58,7 +58,7 @@ export function registerPageRoutes(app: Application): void {
         error: '',
         lockedOut,
         lockoutRemaining,
-        csrfToken: req.csrfToken?.() ?? '',
+        csrfToken: res.locals.csrfToken ?? '',
         esc,
       });
     },
@@ -68,7 +68,7 @@ export function registerPageRoutes(app: Application): void {
     '/login',
     loginLimiter,
     redirectIfAuthenticated,
-    (req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
       const ip = getClientIP(req);
       const lockedOut = isLockedOut(ip);
       const lockoutRemaining = getLockoutRemaining(ip);
@@ -80,7 +80,7 @@ export function registerPageRoutes(app: Application): void {
           error: 'Too many failed attempts. Try again later.',
           lockedOut: true,
           lockoutRemaining,
-          csrfToken: req.csrfToken?.() ?? '',
+          csrfToken: res.locals.csrfToken ?? '',
           esc,
         });
       }
@@ -88,7 +88,7 @@ export function registerPageRoutes(app: Application): void {
       const username = String(req.body?.username ?? '').trim();
       const password = String(req.body?.password ?? '');
 
-      const result = attemptLogin(username, password, ip);
+      const result = await attemptLogin(username, password, ip);
 
       if (result.success) {
         req.session.authenticated = true;
@@ -102,7 +102,7 @@ export function registerPageRoutes(app: Application): void {
         error: result.error,
         lockedOut: isLockedOut(ip),
         lockoutRemaining: getLockoutRemaining(ip),
-        csrfToken: req.csrfToken?.() ?? '',
+        csrfToken: res.locals.csrfToken ?? '',
         esc,
       });
     },
@@ -119,7 +119,7 @@ export function registerPageRoutes(app: Application): void {
       appName: APP_NAME,
       art,
       esc,
-      csrfToken: req.csrfToken?.() ?? '',
+      csrfToken: res.locals.csrfToken ?? '',
     });
   });
 
@@ -132,7 +132,7 @@ export function registerPageRoutes(app: Application): void {
         appName: APP_NAME,
         art,
         esc,
-        csrfToken: req.csrfToken?.() ?? '',
+        csrfToken: res.locals.csrfToken ?? '',
       });
     },
   );

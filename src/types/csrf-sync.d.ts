@@ -19,7 +19,5 @@ declare module 'csrf-sync' {
     invalidCsrfTokenError: Error;
   }
 
-  export function csrfSync(
-    options?: CsrfSyncOptions,
-  ): CsrfSyncResult;
+  export function csrfSync(options?: CsrfSyncOptions): CsrfSyncResult;
 }

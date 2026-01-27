@@ -159,10 +159,7 @@ async function verifyPassword(
     return false;
   }
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(password),
-      Buffer.from(hash),
-    );
+    return crypto.timingSafeEqual(Buffer.from(password), Buffer.from(hash));
   } catch {
     return false;
   }

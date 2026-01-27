@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -8,7 +8,7 @@ export const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return req.ip ?? 'unknown';
+    return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
   },
 });
 
@@ -20,7 +20,7 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   keyGenerator: (req: Request) => {
-    return req.ip ?? 'unknown';
+    return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
   },
 });
 
@@ -33,7 +33,7 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return req.ip ?? 'unknown';
+    return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
   },
 });
 
@@ -44,6 +44,6 @@ export const adminLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
-    return req.ip ?? 'unknown';
+    return req.ip ? ipKeyGenerator(req.ip) : 'unknown';
   },
 });

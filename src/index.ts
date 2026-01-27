@@ -68,33 +68,22 @@ app.use(
   }),
 );
 
-const { csrfSynchronisedProtection, csrfToken, generateToken } = csrfSync({
-  getTokenFromRequest: (req) =>
-    (req.body && req.body._csrf) ||
-    (req.query && req.query._csrf) ||
-    (req.headers && (req.headers['x-csrf-token'] || req.headers['x-xsrf-token'])),
-});
-
-app.use((req, res, next) => {
-  const method = req.method.toUpperCase();
-
-  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
-    // Generate and expose a CSRF token for safe methods
-    generateToken(req);
-    res.locals.csrfToken = csrfToken(req);
-    return next();
-  }
-
-  // Enforce CSRF validation for unsafe methods
-  return csrfSynchronisedProtection(req, res, next);
-});
-
 const { csrfSynchronisedProtection, generateToken } = csrfSync({
   getTokenFromRequest: (req: express.Request) => {
     if (req.body?._csrf) {
       return req.body._csrf as string;
     }
-    const header = req.headers['x-csrf-token'];
+    if (req.query?._csrf) {
+      const queryToken = req.query._csrf;
+      if (Array.isArray(queryToken)) {
+        return (queryToken[0] as string) ?? null;
+      }
+      if (typeof queryToken === 'string') {
+        return queryToken;
+      }
+      return null;
+    }
+    const header = req.headers['x-csrf-token'] || req.headers['x-xsrf-token'];
     if (Array.isArray(header)) {
       return header[0] ?? null;
     }
@@ -108,10 +97,14 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
+        // prettier-ignore
+        defaultSrc: ['\'self\''],
+        // prettier-ignore
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        // prettier-ignore
+        scriptSrc: ['\'self\'', '\'unsafe-inline\''],
+        // prettier-ignore
+        imgSrc: ['\'self\'', 'data:'],
       },
     },
   }),

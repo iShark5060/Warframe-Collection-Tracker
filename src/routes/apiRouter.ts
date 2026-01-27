@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-import * as api from './api';
-import { requireAuthApi } from '../middleware/auth';
+import * as api from './api.js';
+import { requireAuthApi } from '../middleware/auth.js';
 
 function getAction(req: Request): string {
   const q = (req.query?.action as string) ?? '';

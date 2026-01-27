@@ -7,14 +7,14 @@ import {
   getClientIP,
   isLockedOut,
   getLockoutRemaining,
-} from '../auth';
-import { APP_NAME } from '../config';
-import { requireAuth, redirectIfAuthenticated } from '../middleware/auth';
+} from '../auth.js';
+import { APP_NAME } from '../config.js';
+import { requireAuth, redirectIfAuthenticated } from '../middleware/auth.js';
 import {
   generalLimiter,
   loginLimiter,
   adminLimiter,
-} from '../middleware/rateLimit';
+} from '../middleware/rateLimit.js';
 
 const BACKGROUND_PATH = path.join(process.cwd(), 'background.txt');
 

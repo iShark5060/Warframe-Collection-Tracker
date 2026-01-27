@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 
-import { isValidStatus, VALID_STATUSES } from '../config';
+import { isValidStatus, VALID_STATUSES } from '../config.js';
 
 export interface Worksheet {
   id: number;

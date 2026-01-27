@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 
-import { DEBUG_MODE, SQLITE_DB_PATH, VALID_STATUSES } from '../config';
-import * as q from '../db/queries';
-import { getDb } from '../db/schema';
+import { DEBUG_MODE, SQLITE_DB_PATH, VALID_STATUSES } from '../config.js';
+import * as q from '../db/queries.js';
+import { getDb } from '../db/schema.js';
 
 type JsonResponse = (data: object, status?: number) => void;
 

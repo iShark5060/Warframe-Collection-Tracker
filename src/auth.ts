@@ -116,23 +116,7 @@ export function attemptLogin(
   const trimmedUsername = username.trim();
   const trimmedPassword = password.trim();
 
-  console.log('[AUTH DEBUG] Login attempt details:', {
-    providedUsername: `"${trimmedUsername}"`,
-    expectedUsername: `"${AUTH_USERNAME}"`,
-    usernameMatch: trimmedUsername === AUTH_USERNAME,
-    providedPassword: `"${trimmedPassword}"`,
-    expectedPassword: `"${AUTH_PASSWORD}"`,
-    providedPasswordLength: trimmedPassword.length,
-    expectedPasswordLength: AUTH_PASSWORD.length,
-    passwordMatch: trimmedPassword === AUTH_PASSWORD,
-    providedPasswordCharCodes: Array.from(trimmedPassword).map((c) => c.charCodeAt(0)),
-    expectedPasswordCharCodes: Array.from(AUTH_PASSWORD).map((c) => c.charCodeAt(0)),
-  });
-
-  if (
-    trimmedUsername === AUTH_USERNAME &&
-    trimmedPassword === AUTH_PASSWORD
-  ) {
+  if (trimmedUsername === AUTH_USERNAME && trimmedPassword === AUTH_PASSWORD) {
     clearFailedAttempts(ip);
     return { success: true };
   }

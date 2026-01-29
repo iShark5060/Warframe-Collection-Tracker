@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <style>
+    <style nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     :root {
         --bg: #0b0f14;
         --text: #e5e7eb;
@@ -287,7 +287,7 @@
             </div>
         </div>
     </div>
-    <script>
+    <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     const API_URL = '/api';
     const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const VALID_STATUSES = ['', 'Obtained', 'Complete', 'Unavailable'];

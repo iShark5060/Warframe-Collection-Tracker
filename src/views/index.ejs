@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <style>
+    <style nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     :root {
         --bg: #0b0f14;
         --panel: rgba(17, 24, 39, 0.25);
@@ -223,7 +223,7 @@
             </div>
         </div>
     </div>
-    <script>
+    <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     const API_URL = '/api';
     const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let worksheets = [];

@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import cookieParser from 'cookie-parser';
+import { randomBytes } from 'crypto';
 import { csrfSync } from 'csrf-sync';
 import express from 'express';
 import session from 'express-session';
@@ -93,6 +94,11 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
 
 app.use(csrfSynchronisedProtection);
 
+app.use((_req, res, next) => {
+  res.locals.cspNonce = randomBytes(16).toString('base64');
+  next();
+});
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -100,9 +106,13 @@ app.use(
         // prettier-ignore
         defaultSrc: ['\'self\''],
         // prettier-ignore
-        styleSrc: ['\'self\'', '\'unsafe-inline\''],
+        styleSrc: ['\'self\'', (_, res) =>
+          `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
+        ],
         // prettier-ignore
-        scriptSrc: ['\'self\'', '\'unsafe-inline\''],
+        scriptSrc: ['\'self\'', (_, res) =>
+          `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
+        ],
         // prettier-ignore
         imgSrc: ['\'self\'', 'data:'],
       },

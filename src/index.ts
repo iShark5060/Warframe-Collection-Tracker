@@ -107,7 +107,7 @@ app.use(
         defaultSrc: ['\'self\''],
         // prettier-ignore
         styleSrc: [
-          '\'self\'',
+          '\'self\'', '\'unsafe-inline\'',
           (_, res) =>
             `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
         ],
@@ -118,7 +118,7 @@ app.use(
             `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
         ],
         // prettier-ignore
-        imgSrc: ['\'self\'', '\'data:\''],
+        imgSrc: ['\'self\'', 'data:'],
       },
     },
   }),

@@ -103,18 +103,18 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        // prettier-ignore
-        defaultSrc: ['\'self\''],
-        // prettier-ignore
-        styleSrc: ['\'self\'', (_, res) =>
-          `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
+        defaultSrc: ['self'],
+        styleSrc: [
+          'self',
+          (_, res) =>
+            `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
         ],
-        // prettier-ignore
-        scriptSrc: ['\'self\'', (_, res) =>
-          `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
+        scriptSrc: [
+          'self',
+          (_, res) =>
+            `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
         ],
-        // prettier-ignore
-        imgSrc: ['\'self\'', 'data:'],
+        imgSrc: ['self', 'data:'],
       },
     },
   }),

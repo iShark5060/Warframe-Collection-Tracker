@@ -5,7 +5,7 @@
     <title>Login - <%= appName %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <style>
+    <style nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
     :root {
         --bg: #0b0f14;
         --text: #e5e7eb;
@@ -124,7 +124,7 @@
             <div class="lockout-timer">
                 Locked out. Try again in <span id="countdown"><%= Math.ceil(lockoutRemaining / 60) %></span> minute(s).
             </div>
-            <script>
+            <script nonce="<%= typeof cspNonce !== 'undefined' ? cspNonce : '' %>">
                 let remaining = <%= lockoutRemaining %>;
                 const countdown = document.getElementById('countdown');
                 const interval = setInterval(() => {

@@ -106,11 +106,7 @@ app.use(
         // prettier-ignore
         defaultSrc: ['\'self\''],
         // prettier-ignore
-        styleSrc: [
-          '\'self\'', '\'unsafe-inline\'',
-          (_, res) =>
-            `'nonce-${(res as express.Response).locals.cspNonce ?? ''}'`,
-        ],
+        styleSrc: ['\'self\'', '\'unsafe-inline\''],
         // prettier-ignore
         scriptSrc: [
           '\'self\'',

@@ -91,22 +91,29 @@ export function registerPageRoutes(app: Application): void {
       const result = await attemptLogin(username, password, ip);
 
       if (result.success) {
+        const loginErrorPayload = {
+          appName: APP_NAME,
+          art,
+          error: 'Session error. Please try again.',
+          lockedOut: false as const,
+          lockoutRemaining: 0,
+          csrfToken: res.locals.csrfToken ?? '',
+          esc,
+        };
         return void req.session.regenerate((err) => {
           if (err) {
-            res.render('login', {
-              appName: APP_NAME,
-              art,
-              error: 'Session error. Please try again.',
-              lockedOut: false,
-              lockoutRemaining: 0,
-              csrfToken: res.locals.csrfToken ?? '',
-              esc,
-            });
+            res.render('login', loginErrorPayload);
             return;
           }
           req.session.authenticated = true;
           req.session.loginTime = Math.floor(Date.now() / 1000);
-          res.redirect('/');
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              res.render('login', loginErrorPayload);
+              return;
+            }
+            res.redirect('/');
+          });
         });
       }
 

@@ -27,6 +27,7 @@ const viewsPath = __dirname.includes('dist')
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
+const HOST = process.env.HOST ?? '127.0.0.1';
 const SESSION_SECRET =
   process.env.SESSION_SECRET ?? 'warframe-tracker-dev-secret';
 const TRUST_PROXY =
@@ -137,8 +138,6 @@ app.use((req, res, next) => {
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.listen(PORT, () => {
-  console.log(
-    `Warframe Collection Tracker running at http://localhost:${PORT}`,
-  );
+app.listen(PORT, HOST, () => {
+  console.log(`Warframe Collection Tracker running at http://${HOST}:${PORT}`);
 });

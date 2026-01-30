@@ -91,9 +91,9 @@ export function registerPageRoutes(app: Application): void {
       const result = await attemptLogin(username, password, ip);
 
       if (result.success) {
-        req.session.regenerate((err) => {
+        return void req.session.regenerate((err) => {
           if (err) {
-            return res.render('login', {
+            res.render('login', {
               appName: APP_NAME,
               art,
               error: 'Session error. Please try again.',
@@ -102,12 +102,12 @@ export function registerPageRoutes(app: Application): void {
               csrfToken: res.locals.csrfToken ?? '',
               esc,
             });
+            return;
           }
           req.session.authenticated = true;
           req.session.loginTime = Math.floor(Date.now() / 1000);
-          return res.redirect('/');
+          res.redirect('/');
         });
-        return;
       }
 
       return res.render('login', {
@@ -122,15 +122,11 @@ export function registerPageRoutes(app: Application): void {
     },
   );
 
-  app.post(
-    '/logout',
-    generalLimiter,
-    (req: Request, res: Response) => {
-      req.session.destroy(() => {
-        res.redirect('/login');
-      });
-    },
-  );
+  app.post('/logout', generalLimiter, (req: Request, res: Response) => {
+    req.session.destroy(() => {
+      res.redirect('/login');
+    });
+  });
 
   app.get('/', generalLimiter, requireAuth, (req: Request, res: Response) => {
     res.render('index', {

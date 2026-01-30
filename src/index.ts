@@ -35,10 +35,9 @@ if (
   process.env.NODE_ENV === 'production' &&
   SESSION_SECRET === DEV_SESSION_SECRET
 ) {
-  console.error(
-    'Security: Set SESSION_SECRET to a strong random value in production. Refusing to start.',
+  throw new Error(
+    'Security: Set SESSION_SECRET to a strong random value in production.',
   );
-  process.exit(1);
 }
 const TRUST_PROXY =
   process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
@@ -101,8 +100,7 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
     }
     return (header as string | undefined) ?? null;
   },
-  getTokenFromState: (req: express.Request) =>
-    req.session?.csrfToken ?? null,
+  getTokenFromState: (req: express.Request) => req.session?.csrfToken ?? null,
   storeTokenInState: (req: express.Request, token: string) => {
     if (req.session) req.session.csrfToken = token;
   },

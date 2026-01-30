@@ -30,6 +30,15 @@ const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const HOST = process.env.HOST ?? '127.0.0.1';
 const SESSION_SECRET =
   process.env.SESSION_SECRET ?? 'warframe-tracker-dev-secret';
+const DEV_SESSION_SECRET = 'warframe-tracker-dev-secret';
+if (
+  process.env.NODE_ENV === 'production' &&
+  SESSION_SECRET === DEV_SESSION_SECRET
+) {
+  throw new Error(
+    'Security: Set SESSION_SECRET to a strong random value in production.',
+  );
+}
 const TRUST_PROXY =
   process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
 const SECURE_COOKIES =
@@ -90,6 +99,10 @@ const { csrfSynchronisedProtection, generateToken } = csrfSync({
       return header[0] ?? null;
     }
     return (header as string | undefined) ?? null;
+  },
+  getTokenFromState: (req: express.Request) => req.session?.csrfToken ?? null,
+  storeTokenInState: (req: express.Request, token: string) => {
+    if (req.session) req.session.csrfToken = token;
   },
 });
 

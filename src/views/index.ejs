@@ -101,6 +101,8 @@
         transition: all 0.2s;
     }
     .admin-link:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.2); }
+    .logout-form { display: inline; margin: 0; padding: 0; }
+    .logout-btn { font: inherit; cursor: pointer; background: none; }
     .tabs {
         display: flex;
         gap: 4px;
@@ -209,7 +211,10 @@
                     <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
                 </div>
                 <a href="/admin" class="admin-link">Admin</a>
-                <a href="/logout" class="admin-link">Logout</a>
+                <form method="POST" action="/logout" class="logout-form">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                    <button type="submit" class="admin-link logout-btn">Logout</button>
+                </form>
             </div>
         </header>
         <div class="tabs" id="tabs"><div class="loading">Loading tabs...</div></div>

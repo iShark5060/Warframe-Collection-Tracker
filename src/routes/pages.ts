@@ -91,9 +91,30 @@ export function registerPageRoutes(app: Application): void {
       const result = await attemptLogin(username, password, ip);
 
       if (result.success) {
-        req.session.authenticated = true;
-        req.session.loginTime = Math.floor(Date.now() / 1000);
-        return res.redirect('/');
+        const loginErrorPayload = {
+          appName: APP_NAME,
+          art,
+          error: 'Session error. Please try again.',
+          lockedOut: false as const,
+          lockoutRemaining: 0,
+          csrfToken: res.locals.csrfToken ?? '',
+          esc,
+        };
+        return void req.session.regenerate((err) => {
+          if (err) {
+            res.render('login', loginErrorPayload);
+            return;
+          }
+          req.session.authenticated = true;
+          req.session.loginTime = Math.floor(Date.now() / 1000);
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              res.render('login', loginErrorPayload);
+              return;
+            }
+            res.redirect('/');
+          });
+        });
       }
 
       return res.render('login', {
@@ -108,7 +129,7 @@ export function registerPageRoutes(app: Application): void {
     },
   );
 
-  app.get('/logout', (req: Request, res: Response) => {
+  app.post('/logout', generalLimiter, (req: Request, res: Response) => {
     req.session.destroy(() => {
       res.redirect('/login');
     });

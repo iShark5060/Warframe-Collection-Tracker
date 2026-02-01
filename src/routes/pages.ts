@@ -137,10 +137,14 @@ export function registerPageRoutes(app: Application): void {
         return;
       }
 
+      // Any non-success: !result.success or result.success but missing result.user
+      const errorMessage = !result.success
+        ? result.error
+        : 'Invalid login response. Please try again.';
       return res.render('login', {
         appName: APP_NAME,
         art,
-        error: result.error,
+        error: errorMessage,
         lockedOut: isLockedOut(ip),
         lockoutRemaining: getLockoutRemaining(ip),
         dbExists: dbExists(),

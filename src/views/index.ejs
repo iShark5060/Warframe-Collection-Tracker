@@ -211,7 +211,7 @@
                     <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
                 </div>
                 <% if (isAdmin) { %><a href="/admin" class="admin-link">Admin</a><% } %>
-                <form method="POST" action="/logout" class="logout-form" style="display:inline;">
+                <form method="POST" action="/logout" class="logout-form">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                     <button type="submit" class="admin-link logout-btn">Logout</button>
                 </form>

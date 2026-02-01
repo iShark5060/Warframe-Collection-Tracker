@@ -11,7 +11,6 @@ import {
 import * as q from './db/queries.js';
 import { getDb } from './db/schema.js';
 
-/** Session shape used by auth helpers; matches express-session SessionData. */
 export type AuthSession = SessionData | undefined;
 
 interface LockoutRecord {
@@ -27,13 +26,9 @@ let lockoutCache: LockoutData | null = null;
 let lockoutCacheDirty = false;
 let lockoutCacheLastLoad = 0;
 const LOCKOUT_CACHE_TTL = 5000;
-/** Force reload from disk if cache has been dirty longer than this (avoids stale data on write failure). */
-const LOCKOUT_MAX_DIRTY_MS = 60_000;
+const LOCKOUT_PERSIST_MAX_ATTEMPTS = 5;
+const LOCKOUT_PERSIST_BACKOFF_MS = [1000, 2000, 4000, 8000, 16000];
 
-/**
- * Hash a password using argon2id (OWASP recommended)
- * Uses OWASP recommended parameters: 19 MiB memory, 2 iterations, 1 parallelism
- */
 async function hashPassword(password: string): Promise<string> {
   return await argon2.hash(password, {
     type: argon2.argon2id,
@@ -43,9 +38,6 @@ async function hashPassword(password: string): Promise<string> {
   });
 }
 
-/**
- * Verify a password against an argon2 hash
- */
 async function verifyPassword(
   password: string,
   hash: string,
@@ -67,32 +59,48 @@ function getLockoutData(): LockoutData {
   const stale =
     lockoutCache === null ||
     (!lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_CACHE_TTL);
-  const dirtyTooLong =
-    lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_MAX_DIRTY_MS;
 
-  if (stale || dirtyTooLong) {
-    if (!fs.existsSync(AUTH_LOCKOUT_FILE)) {
-      lockoutCache = {};
-      lockoutCacheDirty = false;
-      lockoutCacheLastLoad = now;
-      return lockoutCache;
-    }
-    try {
-      const data = fs.readFileSync(AUTH_LOCKOUT_FILE, 'utf-8');
-      lockoutCache = JSON.parse(data) as LockoutData;
-      lockoutCacheDirty = false;
-      lockoutCacheLastLoad = now;
-    } catch {
-      lockoutCache = {};
-      lockoutCacheDirty = false;
-      lockoutCacheLastLoad = now;
+  if (stale) {
+    if (!lockoutCacheDirty) {
+      if (!fs.existsSync(AUTH_LOCKOUT_FILE)) {
+        lockoutCache = {};
+        lockoutCacheLastLoad = now;
+        return lockoutCache;
+      }
+      try {
+        const data = fs.readFileSync(AUTH_LOCKOUT_FILE, 'utf-8');
+        lockoutCache = JSON.parse(data) as LockoutData;
+        lockoutCacheLastLoad = now;
+      } catch {
+        lockoutCache = {};
+        lockoutCacheLastLoad = now;
+      }
     }
   }
 
   return lockoutCache ?? {};
 }
 
-/** Dummy hash for constant-time comparison when user is not found (timing-attack mitigation). */
+function retryPersistLockoutCache(attempt: number = 0): void {
+  if (!lockoutCacheDirty || !lockoutCache) return;
+  ensureLockoutDir();
+  try {
+    fs.writeFileSync(AUTH_LOCKOUT_FILE, JSON.stringify(lockoutCache, null, 0));
+    lockoutCacheDirty = false;
+  } catch (error) {
+    console.error('Failed to write lockout data:', error);
+    if (attempt < LOCKOUT_PERSIST_MAX_ATTEMPTS) {
+      const delay = LOCKOUT_PERSIST_BACKOFF_MS[attempt] ?? 16000;
+      setTimeout(() => retryPersistLockoutCache(attempt + 1), delay);
+    } else {
+      console.error(
+        'Lockout persistence failed after max attempts; in-memory state retained.',
+      );
+      lockoutCacheDirty = false;
+    }
+  }
+}
+
 let dummyHashPromise: Promise<string> | null = null;
 function getDummyHash(): Promise<string> {
   if (!dummyHashPromise) {
@@ -110,21 +118,7 @@ function saveLockoutData(data: LockoutData): void {
   lockoutCache = data;
   lockoutCacheDirty = true;
   lockoutCacheLastLoad = Date.now();
-
-  setImmediate(() => {
-    if (lockoutCacheDirty && lockoutCache) {
-      ensureLockoutDir();
-      try {
-        fs.writeFileSync(
-          AUTH_LOCKOUT_FILE,
-          JSON.stringify(lockoutCache, null, 0),
-        );
-        lockoutCacheDirty = false;
-      } catch (error) {
-        console.error('Failed to write lockout data:', error);
-      }
-    }
-  });
+  setImmediate(() => retryPersistLockoutCache(0));
 }
 
 export function getClientIP(req: {

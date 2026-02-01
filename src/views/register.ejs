@@ -64,7 +64,7 @@
     </style>
 </head>
 <body>
-    <% if (art) { %><div class="bg-art"><%- art %></div><% } %>
+    <% if (typeof art !== 'undefined' && art) { %><div class="bg-art"><%- art %></div><% } %>
     <div class="register-container">
         <div class="register-box">
             <div class="header">

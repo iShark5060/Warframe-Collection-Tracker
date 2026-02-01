@@ -23,12 +23,20 @@ export function requireAdmin(
   res: Response,
   next: NextFunction,
 ): void {
-  if (!isAuthenticated(getSession(req))) {
+  const session = getSession(req);
+  if (!isAuthenticated(session)) {
     res.redirect('/login');
     return;
   }
-  if (!isAdmin(getSession(req))) {
-    res.status(403).send('Admin access required');
+  if (!isAdmin(session)) {
+    const wantsJson =
+      typeof req.headers.accept === 'string' &&
+      req.headers.accept.includes('application/json');
+    if (wantsJson) {
+      res.status(403).json({ error: 'Admin access required' });
+    } else {
+      res.status(403).send('Admin access required');
+    }
     return;
   }
   next();

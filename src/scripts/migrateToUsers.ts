@@ -1,19 +1,3 @@
-/**
- * One-time migration: add users table to an existing Warframe database
- * and create a single admin user from env credentials.
- *
- * Use this when you already have data (worksheets, rows, etc.) and want to
- * switch to the new auth structure without re-importing.
- *
- * 1. Set IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env
- *    to the login you want (e.g. your old AUTH_USERNAME / AUTH_PASSWORD).
- * 2. Run: npm run migrate
- *
- * This script:
- * - Creates the users table if it does not exist (does not drop other tables).
- * - If no users exist, creates one admin user with the above credentials.
- */
-
 import { config as loadEnv } from '@dotenvx/dotenvx';
 import argon2 from 'argon2';
 import Database from 'better-sqlite3';

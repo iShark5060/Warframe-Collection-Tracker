@@ -57,10 +57,21 @@ export function createUser(
       'INSERT OR IGNORE INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)',
     )
     .run(username, passwordHash, isAdmin ? 1 : 0);
+
+  if (r.changes > 0) {
+    const id = Number(r.lastInsertRowid);
+    return { id, inserted: true };
+  }
+
   const row = db
     .prepare('SELECT id FROM users WHERE username = ?')
     .get(username) as { id: number } | undefined;
-  return { id: row!.id, inserted: r.changes > 0 };
+  if (row === undefined) {
+    throw new Error(
+      'createUser: INSERT OR IGNORE reported no new row but SELECT found no existing user; database may be inconsistent.',
+    );
+  }
+  return { id: row.id, inserted: false };
 }
 
 export function getUserById(

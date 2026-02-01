@@ -61,19 +61,32 @@ async function run(): Promise<void> {
       return;
     }
 
-    const username = IMPORT_DEFAULT_ADMIN_USERNAME.trim();
-    const password = IMPORT_DEFAULT_ADMIN_PASSWORD;
-
-    if (!username || !password) {
+    if (!IMPORT_DEFAULT_ADMIN_USERNAME || !IMPORT_DEFAULT_ADMIN_PASSWORD) {
       outputError(
         'Set IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env',
       );
       outputError('(Use the credentials you want for your single admin user.)');
+      db.close();
       process.exit(1);
     }
 
+    if (
+      IMPORT_DEFAULT_ADMIN_USERNAME === 'admin' &&
+      IMPORT_DEFAULT_ADMIN_PASSWORD === 'admin'
+    ) {
+      outputError(
+        'Default credentials (admin/admin) are forbidden. Set secure values for IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env',
+      );
+      db.close();
+      process.exit(1);
+    }
+
+    const username = IMPORT_DEFAULT_ADMIN_USERNAME.trim();
+    const password = IMPORT_DEFAULT_ADMIN_PASSWORD;
+
     if (password.length < 4) {
       outputError('Password must be at least 4 characters.');
+      db.close();
       process.exit(1);
     }
 

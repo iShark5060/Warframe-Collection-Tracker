@@ -85,6 +85,25 @@ async function runImport(): Promise<void> {
   outputSuccess('Schema created successfully.');
   output('');
 
+  if (!IMPORT_DEFAULT_ADMIN_USERNAME || !IMPORT_DEFAULT_ADMIN_PASSWORD) {
+    outputError(
+      'Set IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env',
+    );
+    db.close();
+    process.exit(1);
+  }
+
+  if (
+    IMPORT_DEFAULT_ADMIN_USERNAME === 'admin' &&
+    IMPORT_DEFAULT_ADMIN_PASSWORD === 'admin'
+  ) {
+    outputError(
+      'Default credentials (admin/admin) are forbidden. Set secure values for IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env',
+    );
+    db.close();
+    process.exit(1);
+  }
+
   if (IMPORT_DEFAULT_ADMIN_PASSWORD.length < 4) {
     outputError('IMPORT_DEFAULT_ADMIN_PASSWORD must be at least 4 characters.');
     db.close();

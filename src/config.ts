@@ -20,9 +20,9 @@ export const SQLITE_DB_PATH = path.resolve(
   process.env.SQLITE_DB_PATH ?? './data/collection.db',
 );
 export const IMPORT_DEFAULT_ADMIN_USERNAME =
-  process.env.IMPORT_DEFAULT_ADMIN_USERNAME ?? 'admin';
+  process.env.IMPORT_DEFAULT_ADMIN_USERNAME;
 export const IMPORT_DEFAULT_ADMIN_PASSWORD =
-  process.env.IMPORT_DEFAULT_ADMIN_PASSWORD ?? 'admin';
+  process.env.IMPORT_DEFAULT_ADMIN_PASSWORD;
 export const CSV_IMPORT_DIR = path.resolve(
   process.env.CSV_IMPORT_DIR ?? './import',
 );

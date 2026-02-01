@@ -8,6 +8,15 @@ export function createSchema(db: Database.Database): void {
     DROP TABLE IF EXISTS rows;
     DROP TABLE IF EXISTS columns;
     DROP TABLE IF EXISTS worksheets;
+    DROP TABLE IF EXISTS users;
+
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      is_admin INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
 
     CREATE TABLE worksheets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

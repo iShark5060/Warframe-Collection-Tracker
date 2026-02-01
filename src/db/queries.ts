@@ -26,6 +26,98 @@ export interface WorksheetData {
   rows: DataRow[];
 }
 
+export interface User {
+  id: number;
+  username: string;
+  password_hash: string;
+  is_admin: number;
+  created_at: string;
+}
+
+export function getUserByUsername(
+  db: Database.Database,
+  username: string,
+): User | undefined {
+  const row = db
+    .prepare(
+      'SELECT id, username, password_hash, is_admin, created_at FROM users WHERE username = ?',
+    )
+    .get(username) as User | undefined;
+  return row;
+}
+
+export function createUser(
+  db: Database.Database,
+  username: string,
+  passwordHash: string,
+  isAdmin: boolean,
+): number {
+  const r = db
+    .prepare(
+      'INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)',
+    )
+    .run(username, passwordHash, isAdmin ? 1 : 0);
+  return Number(r.lastInsertRowid);
+}
+
+export function getUserById(
+  db: Database.Database,
+  userId: number,
+): User | undefined {
+  return db
+    .prepare(
+      'SELECT id, username, password_hash, is_admin, created_at FROM users WHERE id = ?',
+    )
+    .get(userId) as User | undefined;
+}
+
+export function deleteUser(db: Database.Database, userId: number): boolean {
+  const r = db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  return r.changes > 0;
+}
+
+export function updateUserPassword(
+  db: Database.Database,
+  userId: number,
+  passwordHash: string,
+): boolean {
+  const r = db
+    .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+    .run(passwordHash, userId);
+  return r.changes > 0;
+}
+
+export function getAllUsers(db: Database.Database): {
+  id: number;
+  username: string;
+  is_admin: number;
+  created_at: string;
+  account_count: number;
+}[] {
+  return db
+    .prepare(
+      `
+    SELECT u.id, u.username, u.is_admin, u.created_at, 0 as account_count
+    FROM users u
+    ORDER BY u.created_at ASC
+  `,
+    )
+    .all() as {
+    id: number;
+    username: string;
+    is_admin: number;
+    created_at: string;
+    account_count: number;
+  }[];
+}
+
+export function userExists(db: Database.Database, username: string): boolean {
+  const row = db
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get(username);
+  return !!row;
+}
+
 export function getWorksheets(db: Database.Database): Worksheet[] {
   const stmt = db.prepare(
     'SELECT id, name FROM worksheets ORDER BY display_order',

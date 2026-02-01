@@ -151,6 +151,16 @@ app.use((req, res, next) => {
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`Warframe Collection Tracker running at http://${HOST}:${PORT}`);
 });
+
+function shutdown(): void {
+  server.close(() => {
+    sessionDb.close();
+    // eslint-disable-next-line n/no-process-exit -- intentional graceful shutdown
+    process.exit(0);
+  });
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

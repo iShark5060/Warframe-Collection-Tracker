@@ -10,6 +10,7 @@
  */
 
 import { config as loadEnv } from '@dotenvx/dotenvx';
+import argon2 from 'argon2';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
@@ -19,7 +20,10 @@ import {
   CSV_DELIMITER,
   SQLITE_DB_PATH,
   VALID_STATUSES,
+  IMPORT_DEFAULT_ADMIN_USERNAME,
+  IMPORT_DEFAULT_ADMIN_PASSWORD,
 } from '../config.js';
+import * as q from '../db/queries.js';
 import { createSchema } from '../db/schema.js';
 
 loadEnv();
@@ -40,7 +44,7 @@ function parseCsvLine(line: string): string[] {
   return line.split(CSV_DELIMITER).map((c) => c.replace(/^\uFEFF/, '').trim());
 }
 
-function runImport(): void {
+async function runImport(): Promise<void> {
   output('Starting import process...');
   output('');
 
@@ -90,6 +94,20 @@ function runImport(): void {
   output('Creating database schema...');
   createSchema(db);
   outputSuccess('Schema created successfully.');
+  output('');
+
+  if (!q.userExists(db, IMPORT_DEFAULT_ADMIN_USERNAME)) {
+    const hash = await argon2.hash(IMPORT_DEFAULT_ADMIN_PASSWORD, {
+      type: argon2.argon2id,
+      memoryCost: 19 * 1024,
+      timeCost: 2,
+      parallelism: 1,
+    });
+    q.createUser(db, IMPORT_DEFAULT_ADMIN_USERNAME, hash, true);
+    outputSuccess('Default admin user created.');
+  } else {
+    outputSuccess('Default admin user already exists.');
+  }
   output('');
 
   let worksheetOrder = 0;
@@ -173,4 +191,7 @@ function runImport(): void {
   output('You can now run the app: npm run dev or npm start');
 }
 
-runImport();
+runImport().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

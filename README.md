@@ -1,13 +1,11 @@
 # Warframe Collection Tracker
 
-A TypeScript/Node.js web app for tracking your Warframe collection (Warframes, weapons, accessories, etc.). Built with Express, SQLite, and EJS.
+TypeScript/Node.js web app for tracking your Warframe collection (worksheets with items and status columns). User-based auth and admin management.
 
 ## Requirements
 
-- **Node.js** 18+
-- **Build tools** (for `better-sqlite3` on Windows):  
-  [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with the **“Desktop development with C++”** workload.  
-  On Linux/macOS, common build tools (e.g. `build-essential`, Xcode CLI) are usually enough.
+- **Node.js** 25+ (see `engines` in `package.json`)
+- **Build tools** (for `better-sqlite3` on Windows): [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with **“Desktop development with C++”**. On Linux/macOS, standard build tools (e.g. `build-essential`, Xcode CLI) are usually sufficient.
 
 ## Setup
 
@@ -17,8 +15,6 @@ A TypeScript/Node.js web app for tracking your Warframe collection (Warframes, w
    npm install
    ```
 
-   If `better-sqlite3` fails to build on Windows, install the build tools above and run `npm install` again.
-
 2. **Configure environment**
 
    ```bash
@@ -26,24 +22,28 @@ A TypeScript/Node.js web app for tracking your Warframe collection (Warframes, w
    ```
 
    Edit `.env` and set at least:
-   - `AUTH_USERNAME` / `AUTH_PASSWORD` – login credentials
-   - `SESSION_SECRET` – secret for session cookies (use a long random string in production)
+   - **`SESSION_SECRET`** – secret for session cookies (use a long random string in production; the app will refuse to start in production with the default).
+   - **`IMPORT_DEFAULT_ADMIN_USERNAME`** / **`IMPORT_DEFAULT_ADMIN_PASSWORD`** – credentials for the default admin user created by `npm run import` or `npm run migrate` (optional; defaults in `.env.example`).
 
-3. **Create folders**
+3. **Create directories**
 
    ```bash
    mkdir -p data import
    ```
 
-4. **Import data (optional)**
+4. **Database**
+   - **Fresh install:** Run import to create the database, schema, and default admin user:
+     ```bash
+     npm run import
+     ```
+     Optionally add CSV files to `import/` first (see [CSV format](#csv-format)); otherwise you get an empty DB with one admin user.
+   - **Existing database (migrating to user-based auth):** If you already have data and only need to add the `users` table and one admin:
+     ```bash
+     npm run migrate
+     ```
+     Set `IMPORT_DEFAULT_ADMIN_USERNAME` and `IMPORT_DEFAULT_ADMIN_PASSWORD` in `.env` to the login you want; migrate creates the `users` table and one admin user without touching existing worksheets/data.
 
-   Place CSV files in the `import/` folder (see [CSV format](#csv-format) below), then:
-
-   ```bash
-   npm run import
-   ```
-
-   This creates `data/collection.db` and (re)builds the schema. **Warning:** Import overwrites existing data.
+   **Warning:** `npm run import` **recreates** the schema and overwrites existing data. Use `npm run migrate` when you already have data.
 
 5. **Run the app**
 
@@ -52,17 +52,33 @@ A TypeScript/Node.js web app for tracking your Warframe collection (Warframes, w
    npm start      # production (after npm run build)
    ```
 
-   By default the app runs at **http://localhost:3000**. Use `PORT` in `.env` to change it.
+   By default the app runs at **http://127.0.0.1:3000** (`HOST` and `PORT` in `.env`).
 
-## Deployment (Apache + HTTPS on 443)
+## Routes
 
-To serve the app behind **Apache** on port 443 (HTTPS):
+| Route       | Description                               |
+| ----------- | ----------------------------------------- |
+| `/`         | Main tracker (tabs, search)               |
+| `/login`    | Login                                     |
+| `/logout`   | Logout                                    |
+| `/admin`    | Admin (add/edit items, set status)        |
+| `/register` | Create user (admin only)                  |
+| `/api`      | JSON API (worksheets, data, update, CRUD) |
 
-1. Run the Node app as a service (e.g. **PM2** or **systemd**) on a local port (e.g. `3000`).
-2. Set `TRUST_PROXY=1` and `SECURE_COOKIES=1` in `.env`.
-3. Use Apache as a **reverse proxy**: enable `mod_proxy`, `mod_proxy_http`, `mod_ssl`, then `ProxyPass` / `ProxyPassReverse` to `http://127.0.0.1:3000/`.
+API examples: `GET /api?action=worksheets`, `GET /api?action=data&worksheet=1`, `POST /api?action=update` with JSON `{ row_id, column_id, value }`, etc.
 
-See **[DEPLOY.md](DEPLOY.md)** for step‑by‑step Apache config, PM2/systemd examples, and troubleshooting.
+## Scripts
+
+| Script                 | Description                                                                 |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `npm run dev`          | Run with ts-node-dev (watch)                                                |
+| `npm run build`        | Compile TypeScript and copy views to `dist/`                                |
+| `npm start`            | Run compiled app from `dist/`                                               |
+| `npm run import`       | Create schema, default admin, and import worksheets from CSV                |
+| `npm run migrate`      | Add `users` table and seed one admin (for existing DBs; does not drop data) |
+| `npm run lint`         | Run ESLint                                                                  |
+| `npm run format`       | Run Prettier                                                                |
+| `npm run check-format` | Check Prettier formatting                                                   |
 
 ## CSV format
 
@@ -74,46 +90,30 @@ Each CSV file = one worksheet/tab. Semicolon-delimited by default (`CSV_DELIMITE
 
 Allowed status values: empty, `Obtained`, `Complete`, `Unavailable`.
 
-## Routes
-
-| Route     | Description                               |
-| --------- | ----------------------------------------- |
-| `/`       | Main tracker (tabs, search)               |
-| `/admin`  | Add/edit/delete items, set any status     |
-| `/login`  | Login                                     |
-| `/logout` | Logout                                    |
-| `/api`    | JSON API (worksheets, data, update, CRUD) |
-
-API usage: `GET /api?action=worksheets`, `GET /api?action=data&worksheet=1`,  
-`POST /api?action=update` with JSON `{ row_id, column_id, value }`, etc.
-
 ## Project layout
 
 ```
 ├── src/
-│   ├── index.ts          # Express app
-│   ├── config.ts         # Env config
-│   ├── auth.ts           # Login, lockout
-│   ├── db/               # SQLite schema & queries
-│   ├── middleware/       # Auth middleware
-│   ├── routes/           # API & page routes
-│   ├── views/            # EJS (index, login, admin)
-│   ├── scripts/          # Import script
-│   └── types/            # Session typings
-├── data/                 # SQLite DB, lockout JSON (gitignored)
-├── import/               # CSV files (gitignored)
+│   ├── index.ts       # Express app
+│   ├── config.ts      # Env config
+│   ├── auth.ts        # Login, lockout, user management
+│   ├── db/             # SQLite schema & queries
+│   ├── middleware/     # Auth middleware
+│   ├── routes/         # API & page routes
+│   ├── views/          # EJS (index, login, admin, register)
+│   ├── scripts/        # Import & migrate scripts
+│   └── types/          # Session typings
+├── data/               # SQLite DB, lockout JSON (gitignored)
+├── import/             # CSV files (gitignored)
 ├── .env.example
 ├── package.json
 └── tsconfig.json
 ```
 
-## Scripts
+## Deployment
 
-- `npm run dev` – run with ts-node-dev
-- `npm run build` – compile TypeScript to `dist/`
-- `npm start` – run compiled app
-- `npm run import` – run CSV import
+Run the Node app (e.g. PM2 or systemd) behind a reverse proxy (e.g. Apache or nginx). Set **`NODE_ENV=production`**, **`SESSION_SECRET`** to a strong random value, and **`TRUST_PROXY=1`** and **`SECURE_COOKIES=1`** when using HTTPS. The app uses graceful shutdown (SIGTERM/SIGINT) to close the session store before exiting.
 
 ## License
 
-MIT
+GPL-3.0-or-later

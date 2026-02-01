@@ -9,6 +9,7 @@
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn src/index.ts",
     "import": "ts-node src/scripts/import.ts",
+    "migrate": "ts-node src/scripts/migrateToUsers.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "check-format": "prettier --check ."
@@ -24,7 +25,6 @@
     "cookie-parser": "^1.4.7",
     "@dotenvx/dotenvx": "^1.51.4",
     "argon2": "^0.44.0",
-    "bcrypt": "^6.0.0",
     "csrf-sync": "^4.2.1",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
@@ -35,7 +35,6 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
-    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.7",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.0",

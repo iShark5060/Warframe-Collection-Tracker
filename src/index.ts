@@ -151,6 +151,38 @@ app.use((req, res, next) => {
 app.use('/api', apiLimiter, apiRouter);
 registerPageRoutes(app);
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`Warframe Collection Tracker running at http://${HOST}:${PORT}`);
 });
+
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+function shutdown(): void {
+  let closed = false;
+  function exit(): void {
+    if (closed) return;
+    closed = true;
+    try {
+      sessionDb.close();
+    } catch (err) {
+      console.error('Error closing session DB:', err);
+    }
+    // eslint-disable-next-line n/no-process-exit -- intentional graceful shutdown
+    process.exit(0);
+  }
+
+  const timeout = setTimeout(() => {
+    console.warn('Shutdown timeout: forcing exit');
+    exit();
+  }, SHUTDOWN_TIMEOUT_MS);
+
+  server.close((err) => {
+    clearTimeout(timeout);
+    if (err) {
+      console.error('Error closing server:', err);
+    }
+    exit();
+  });
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

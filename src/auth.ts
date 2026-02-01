@@ -1,6 +1,5 @@
 import argon2 from 'argon2';
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
+import type { SessionData } from 'express-session';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,14 +7,11 @@ import {
   AUTH_LOCKOUT_FILE,
   AUTH_MAX_ATTEMPTS,
   AUTH_LOCKOUT_MINUTES,
-  AUTH_USERNAME,
-  AUTH_PASSWORD,
 } from './config.js';
+import * as q from './db/queries.js';
+import { getDb } from './db/schema.js';
 
-export interface SessionUser {
-  authenticated: true;
-  loginTime: number;
-}
+export type AuthSession = SessionData | undefined;
 
 interface LockoutRecord {
   attempts: number;
@@ -26,26 +22,103 @@ interface LockoutRecord {
 
 type LockoutData = Record<string, LockoutRecord>;
 
+let lockoutCache: LockoutData | null = null;
+let lockoutCacheDirty = false;
+let lockoutCacheLastLoad = 0;
+const LOCKOUT_CACHE_TTL = 5000;
+const LOCKOUT_PERSIST_MAX_ATTEMPTS = 5;
+const LOCKOUT_PERSIST_BACKOFF_MS = [1000, 2000, 4000, 8000, 16000];
+
+async function hashPassword(password: string): Promise<string> {
+  return await argon2.hash(password, {
+    type: argon2.argon2id,
+    memoryCost: 19 * 1024,
+    timeCost: 2,
+    parallelism: 1,
+  });
+}
+
+async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
+  try {
+    return await argon2.verify(hash, password);
+  } catch {
+    return false;
+  }
+}
+
 function ensureLockoutDir(): void {
   const dir = path.dirname(AUTH_LOCKOUT_FILE);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
 function getLockoutData(): LockoutData {
-  if (!fs.existsSync(AUTH_LOCKOUT_FILE)) return {};
+  const now = Date.now();
+  const stale =
+    lockoutCache === null ||
+    (!lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_CACHE_TTL);
+
+  if (stale) {
+    if (!lockoutCacheDirty) {
+      if (!fs.existsSync(AUTH_LOCKOUT_FILE)) {
+        lockoutCache = {};
+        lockoutCacheLastLoad = now;
+        return lockoutCache;
+      }
+      try {
+        const data = fs.readFileSync(AUTH_LOCKOUT_FILE, 'utf-8');
+        lockoutCache = JSON.parse(data) as LockoutData;
+        lockoutCacheLastLoad = now;
+      } catch {
+        lockoutCache = {};
+        lockoutCacheLastLoad = now;
+      }
+    }
+  }
+
+  return lockoutCache ?? {};
+}
+
+function retryPersistLockoutCache(attempt: number = 0): void {
+  if (!lockoutCacheDirty || !lockoutCache) return;
+  ensureLockoutDir();
   try {
-    const data = fs.readFileSync(AUTH_LOCKOUT_FILE, 'utf-8');
-    return JSON.parse(data) as LockoutData;
-  } catch {
-    return {};
+    fs.writeFileSync(AUTH_LOCKOUT_FILE, JSON.stringify(lockoutCache, null, 0));
+    lockoutCacheDirty = false;
+  } catch (error) {
+    console.error('Failed to write lockout data:', error);
+    if (attempt < LOCKOUT_PERSIST_MAX_ATTEMPTS) {
+      const delay = LOCKOUT_PERSIST_BACKOFF_MS[attempt] ?? 16000;
+      setTimeout(() => retryPersistLockoutCache(attempt + 1), delay);
+    } else {
+      console.error(
+        'Lockout persistence failed after max attempts; in-memory state retained.',
+      );
+      lockoutCacheDirty = false;
+    }
   }
 }
 
+let dummyHashPromise: Promise<string> | null = null;
+function getDummyHash(): Promise<string> {
+  if (!dummyHashPromise) {
+    dummyHashPromise = argon2.hash('timing-dummy', {
+      type: argon2.argon2id,
+      memoryCost: 19 * 1024,
+      timeCost: 2,
+      parallelism: 1,
+    });
+  }
+  return dummyHashPromise;
+}
+
 function saveLockoutData(data: LockoutData): void {
-  ensureLockoutDir();
-  fs.writeFileSync(AUTH_LOCKOUT_FILE, JSON.stringify(data, null, 0));
+  lockoutCache = data;
+  lockoutCacheDirty = true;
+  lockoutCacheLastLoad = Date.now();
+  setImmediate(() => retryPersistLockoutCache(0));
 }
 
 export function getClientIP(req: {
@@ -82,7 +155,7 @@ export function getLockoutRemaining(ip: string): number {
   return Math.max(0, remaining);
 }
 
-export function recordFailedAttempt(ip: string): number {
+function recordFailedAttempt(ip: string): number {
   const data = getLockoutData();
   if (!data[ip]) {
     data[ip] = { attempts: 0, first_attempt: Math.floor(Date.now() / 1000) };
@@ -97,7 +170,7 @@ export function recordFailedAttempt(ip: string): number {
   return AUTH_MAX_ATTEMPTS - data[ip].attempts;
 }
 
-export function clearFailedAttempts(ip: string): void {
+function clearFailedAttempts(ip: string): void {
   const data = getLockoutData();
   if (data[ip]) {
     delete data[ip];
@@ -105,106 +178,167 @@ export function clearFailedAttempts(ip: string): void {
   }
 }
 
-/**
- * Hash a password using argon2 (recommended for new passwords)
- * Uses OWASP-compliant parameters: memoryCost: 14 (16 MiB), timeCost: 3, parallelism: 1
- */
-export async function hashPassword(password: string): Promise<string> {
-  const memoryCost = 14;
-  const timeCost = 3;
-  const parallelism = 1;
-  return await argon2.hash(password, {
-    memoryCost,
-    timeCost,
-    parallelism,
-  });
-}
-
-/**
- * Verify a password against a hash (supports argon2, bcrypt, and plain text for migration)
- */
-async function verifyPassword(
-  password: string,
-  hash: string,
-): Promise<boolean> {
-  if (hash.startsWith('$argon2')) {
-    try {
-      return await argon2.verify(hash, password);
-    } catch {
-      return false;
-    }
-  }
-
-  if (
-    hash.startsWith('$2a$') ||
-    hash.startsWith('$2b$') ||
-    hash.startsWith('$2y$')
-  ) {
-    try {
-      return await bcrypt.compare(password, hash);
-    } catch {
-      return false;
-    }
-  }
-
-  if (password.length !== hash.length) {
-    return false;
-  }
-  try {
-    return crypto.timingSafeEqual(Buffer.from(password), Buffer.from(hash));
-  } catch {
-    return false;
-  }
-}
-
 export async function attemptLogin(
   username: string,
   password: string,
   ip: string,
-): Promise<{ success: true } | { success: false; error: string }> {
+): Promise<
+  | { success: true; user: { id: number; username: string; is_admin: number } }
+  | { success: false; error: string }
+> {
   if (isLockedOut(ip)) {
     return {
       success: false,
       error: 'Too many failed attempts. Try again later.',
     };
   }
-  const trimmedUsername = username.trim();
-  if (trimmedUsername !== AUTH_USERNAME) {
-    const remaining = recordFailedAttempt(ip);
-    if (remaining <= 0) {
+
+  const db = getDb();
+  try {
+    const user = q.getUserByUsername(db, username.trim());
+    if (!user) {
+      await getDummyHash().then((h) => verifyPassword(password, h));
+      const remaining = recordFailedAttempt(ip);
+      if (remaining <= 0) {
+        return {
+          success: false,
+          error: `Too many failed attempts. Locked out for ${AUTH_LOCKOUT_MINUTES} minutes.`,
+        };
+      }
       return {
         success: false,
-        error: `Too many failed attempts. Locked out for ${AUTH_LOCKOUT_MINUTES} minutes.`,
+        error: `Invalid username or password. ${remaining} attempt(s) remaining.`,
       };
     }
-    return {
-      success: false,
-      error: `Invalid username or password. ${remaining} attempt(s) remaining.`,
-    };
-  }
 
-  const isValid = await verifyPassword(password, AUTH_PASSWORD);
+    const ok = await verifyPassword(password, user.password_hash);
+    if (!ok) {
+      const remaining = recordFailedAttempt(ip);
+      if (remaining <= 0) {
+        return {
+          success: false,
+          error: `Too many failed attempts. Locked out for ${AUTH_LOCKOUT_MINUTES} minutes.`,
+        };
+      }
+      return {
+        success: false,
+        error: `Invalid username or password. ${remaining} attempt(s) remaining.`,
+      };
+    }
 
-  if (isValid) {
     clearFailedAttempts(ip);
-    return { success: true };
-  }
-
-  const remaining = recordFailedAttempt(ip);
-  if (remaining <= 0) {
     return {
-      success: false,
-      error: `Too many failed attempts. Locked out for ${AUTH_LOCKOUT_MINUTES} minutes.`,
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        is_admin: user.is_admin,
+      },
     };
+  } finally {
+    db.close();
   }
-  return {
-    success: false,
-    error: `Invalid username or password. ${remaining} attempt(s) remaining.`,
-  };
 }
 
-export function isAuthenticated(
-  session: { authenticated?: boolean } | undefined,
-): boolean {
-  return Boolean(session?.authenticated);
+export function getUserForLogin(
+  username: string,
+): { id: number; username: string; is_admin: number } | null {
+  const db = getDb();
+  try {
+    const user = q.getUserByUsername(db, username.trim());
+    if (!user) return null;
+    return { id: user.id, username: user.username, is_admin: user.is_admin };
+  } finally {
+    db.close();
+  }
+}
+
+export async function createUser(
+  username: string,
+  password: string,
+  isAdminUser: boolean,
+): Promise<
+  { success: true; user_id: number } | { success: false; error: string }
+> {
+  const db = getDb();
+  try {
+    const u = username.trim();
+    if (!u || !password) {
+      return { success: false, error: 'Username and password are required' };
+    }
+    if (password.length < 4) {
+      return {
+        success: false,
+        error: 'Password must be at least 4 characters',
+      };
+    }
+    const hash = await hashPassword(password);
+    const result = q.createUser(db, u, hash, isAdminUser);
+    if (!result.inserted) {
+      return { success: false, error: 'Username already exists' };
+    }
+    return { success: true, user_id: result.id };
+  } finally {
+    db.close();
+  }
+}
+
+export function deleteUser(
+  currentUserId: number,
+  targetUserId: number,
+): { success: true } | { success: false; error: string } {
+  if (targetUserId === currentUserId) {
+    return { success: false, error: 'Cannot delete your own account' };
+  }
+  const db = getDb();
+  try {
+    if (!q.deleteUser(db, targetUserId)) {
+      return { success: false, error: 'User not found' };
+    }
+    return { success: true };
+  } finally {
+    db.close();
+  }
+}
+
+export async function changePassword(
+  userId: number,
+  newPassword: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  if (newPassword.length < 4) {
+    return { success: false, error: 'Password must be at least 4 characters' };
+  }
+  const db = getDb();
+  try {
+    const hash = await hashPassword(newPassword);
+    if (!q.updateUserPassword(db, userId, hash)) {
+      return { success: false, error: 'User not found' };
+    }
+    return { success: true };
+  } finally {
+    db.close();
+  }
+}
+
+export function getAllUsers(): {
+  id: number;
+  username: string;
+  is_admin: number;
+  created_at: string;
+  account_count: number;
+}[] {
+  const db = getDb();
+  try {
+    return q.getAllUsers(db);
+  } finally {
+    db.close();
+  }
+}
+
+export function isAuthenticated(session: AuthSession): boolean {
+  return typeof session?.user_id === 'number' && session.user_id > 0;
+}
+
+export function isAdmin(session: AuthSession): boolean {
+  return Boolean(session?.is_admin);
 }

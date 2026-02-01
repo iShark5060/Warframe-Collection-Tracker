@@ -1,15 +1,5 @@
-/**
- * Import Script for Warframe Collection Tracker
- *
- * Imports CSV files from the import directory into the SQLite database.
- * CSV format: Row 1 = worksheet name, Row 2 = column headers, Row 3+ = data.
- * Semicolon-delimited by default.
- *
- * Usage: npm run import
- * Or: npx ts-node src/scripts/import.ts
- */
-
 import { config as loadEnv } from '@dotenvx/dotenvx';
+import argon2 from 'argon2';
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
@@ -19,7 +9,10 @@ import {
   CSV_DELIMITER,
   SQLITE_DB_PATH,
   VALID_STATUSES,
+  IMPORT_DEFAULT_ADMIN_USERNAME,
+  IMPORT_DEFAULT_ADMIN_PASSWORD,
 } from '../config.js';
+import * as q from '../db/queries.js';
 import { createSchema } from '../db/schema.js';
 
 loadEnv();
@@ -40,7 +33,7 @@ function parseCsvLine(line: string): string[] {
   return line.split(CSV_DELIMITER).map((c) => c.replace(/^\uFEFF/, '').trim());
 }
 
-function runImport(): void {
+async function runImport(): Promise<void> {
   output('Starting import process...');
   output('');
 
@@ -90,6 +83,50 @@ function runImport(): void {
   output('Creating database schema...');
   createSchema(db);
   outputSuccess('Schema created successfully.');
+  output('');
+
+  if (!IMPORT_DEFAULT_ADMIN_USERNAME || !IMPORT_DEFAULT_ADMIN_PASSWORD) {
+    outputError(
+      'Set IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env',
+    );
+    db.close();
+    process.exit(1);
+  }
+
+  if (
+    IMPORT_DEFAULT_ADMIN_USERNAME === 'admin' &&
+    IMPORT_DEFAULT_ADMIN_PASSWORD === 'admin'
+  ) {
+    outputError(
+      'Default credentials (admin/admin) are forbidden. Set secure values for IMPORT_DEFAULT_ADMIN_USERNAME and IMPORT_DEFAULT_ADMIN_PASSWORD in .env',
+    );
+    db.close();
+    process.exit(1);
+  }
+
+  if (IMPORT_DEFAULT_ADMIN_PASSWORD.length < 4) {
+    outputError('IMPORT_DEFAULT_ADMIN_PASSWORD must be at least 4 characters.');
+    db.close();
+    process.exit(1);
+  }
+
+  const hash = await argon2.hash(IMPORT_DEFAULT_ADMIN_PASSWORD, {
+    type: argon2.argon2id,
+    memoryCost: 19 * 1024,
+    timeCost: 2,
+    parallelism: 1,
+  });
+  const createResult = q.createUser(
+    db,
+    IMPORT_DEFAULT_ADMIN_USERNAME,
+    hash,
+    true,
+  );
+  if (createResult.inserted) {
+    outputSuccess('Default admin user created.');
+  } else {
+    outputSuccess('Default admin user already exists.');
+  }
   output('');
 
   let worksheetOrder = 0;
@@ -173,4 +210,7 @@ function runImport(): void {
   output('You can now run the app: npm run dev or npm start');
 }
 
-runImport();
+runImport().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

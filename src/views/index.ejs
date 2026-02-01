@@ -102,7 +102,7 @@
     }
     .admin-link:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.2); }
     .logout-form { display: inline; margin: 0; padding: 0; }
-    .logout-btn { font: inherit; cursor: pointer; background: none; }
+    .logout-btn { cursor: pointer; background: none; }
     .tabs {
         display: flex;
         gap: 4px;
@@ -210,7 +210,7 @@
                     <input type="text" class="search-box" id="search" placeholder="Search...">
                     <button type="button" class="search-clear" id="search-clear" aria-label="Clear search">×</button>
                 </div>
-                <a href="/admin" class="admin-link">Admin</a>
+                <% if (isAdmin) { %><a href="/admin" class="admin-link">Admin</a><% } %>
                 <form method="POST" action="/logout" class="logout-form">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                     <button type="submit" class="admin-link logout-btn">Logout</button>

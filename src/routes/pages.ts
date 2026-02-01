@@ -7,9 +7,14 @@ import {
   getClientIP,
   isLockedOut,
   getLockoutRemaining,
+  createUser,
 } from '../auth.js';
-import { APP_NAME } from '../config.js';
-import { requireAuth, redirectIfAuthenticated } from '../middleware/auth.js';
+import { APP_NAME, SQLITE_DB_PATH } from '../config.js';
+import {
+  requireAuth,
+  requireAdmin,
+  redirectIfAuthenticated,
+} from '../middleware/auth.js';
 import {
   generalLimiter,
   loginLimiter,
@@ -41,6 +46,10 @@ function esc(s: unknown): string {
     .replace(/'/g, '&#039;');
 }
 
+function dbExists(): boolean {
+  return fs.existsSync(SQLITE_DB_PATH);
+}
+
 export function registerPageRoutes(app: Application): void {
   const art = getBackgroundArt();
 
@@ -58,6 +67,7 @@ export function registerPageRoutes(app: Application): void {
         error: '',
         lockedOut,
         lockoutRemaining,
+        dbExists: dbExists(),
         csrfToken: res.locals.csrfToken ?? '',
         esc,
       });
@@ -80,6 +90,7 @@ export function registerPageRoutes(app: Application): void {
           error: 'Too many failed attempts. Try again later.',
           lockedOut: true,
           lockoutRemaining,
+          dbExists: dbExists(),
           csrfToken: res.locals.csrfToken ?? '',
           esc,
         });
@@ -90,31 +101,40 @@ export function registerPageRoutes(app: Application): void {
 
       const result = await attemptLogin(username, password, ip);
 
-      if (result.success) {
-        const loginErrorPayload = {
-          appName: APP_NAME,
-          art,
-          error: 'Session error. Please try again.',
-          lockedOut: false as const,
-          lockoutRemaining: 0,
-          csrfToken: res.locals.csrfToken ?? '',
-          esc,
-        };
-        return void req.session.regenerate((err) => {
+      if (result.success && result.user) {
+        const user = result.user;
+
+        const loginErrorPayload = () =>
+          res.render('login', {
+            appName: APP_NAME,
+            art,
+            error: 'Session error. Please try again.',
+            lockedOut: false as const,
+            lockoutRemaining: 0,
+            dbExists: dbExists(),
+            csrfToken: res.locals.csrfToken ?? '',
+            esc,
+          });
+
+        req.session.regenerate((err) => {
           if (err) {
-            res.render('login', loginErrorPayload);
+            loginErrorPayload();
             return;
           }
-          req.session.authenticated = true;
-          req.session.loginTime = Math.floor(Date.now() / 1000);
+          req.session.user_id = user.id;
+          req.session.username = user.username;
+          req.session.is_admin = Boolean(user.is_admin);
+          req.session.login_time = Math.floor(Date.now() / 1000);
           req.session.save((saveErr) => {
             if (saveErr) {
-              res.render('login', loginErrorPayload);
-              return;
+              return loginErrorPayload();
             }
-            res.redirect('/');
+            return res.redirect('/');
           });
+          return;
         });
+        // eslint-disable-next-line consistent-return -- regenerate path returns void; other paths return Response
+        return;
       }
 
       return res.render('login', {
@@ -123,22 +143,29 @@ export function registerPageRoutes(app: Application): void {
         error: result.error,
         lockedOut: isLockedOut(ip),
         lockoutRemaining: getLockoutRemaining(ip),
+        dbExists: dbExists(),
         csrfToken: res.locals.csrfToken ?? '',
         esc,
       });
     },
   );
 
-  app.post('/logout', generalLimiter, (req: Request, res: Response) => {
-    req.session.destroy(() => {
-      res.redirect('/login');
-    });
-  });
+  app.post(
+    '/logout',
+    generalLimiter,
+    requireAuth,
+    (req: Request, res: Response) => {
+      req.session.destroy(() => {
+        res.redirect('/login');
+      });
+    },
+  );
 
   app.get('/', generalLimiter, requireAuth, (req: Request, res: Response) => {
     res.render('index', {
       appName: APP_NAME,
       art,
+      isAdmin: Boolean(req.session.is_admin),
       esc,
       csrfToken: res.locals.csrfToken ?? '',
     });
@@ -147,12 +174,64 @@ export function registerPageRoutes(app: Application): void {
   app.get(
     '/admin',
     adminLimiter,
-    requireAuth,
+    requireAdmin,
     (req: Request, res: Response) => {
       res.render('admin', {
         appName: APP_NAME,
         art,
         esc,
+        csrfToken: res.locals.csrfToken ?? '',
+      });
+    },
+  );
+
+  app.get(
+    '/register',
+    adminLimiter,
+    requireAdmin,
+    (req: Request, res: Response) => {
+      res.render('register', {
+        appName: APP_NAME,
+        art,
+        error: '',
+        success: '',
+        csrfToken: res.locals.csrfToken ?? '',
+      });
+    },
+  );
+
+  app.post(
+    '/register',
+    adminLimiter,
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      const username = String(req.body?.username ?? '').trim();
+      const password = String(req.body?.password ?? '');
+      const confirmPassword = String(req.body?.confirm_password ?? '');
+      const isAdminUser = Boolean(req.body?.is_admin);
+
+      let error = '';
+      let success = '';
+
+      if (!username || !password) {
+        error = 'Username and password are required.';
+      } else if (password !== confirmPassword) {
+        error = 'Passwords do not match.';
+      } else {
+        const result = await createUser(username, password, isAdminUser);
+        if (result.success) {
+          success = `User '${esc(username)}' created successfully!`;
+        } else {
+          error = result.error;
+        }
+      }
+
+      res.render('register', {
+        appName: APP_NAME,
+        art,
+        error,
+        success,
+        username: error ? username : '',
         csrfToken: res.locals.csrfToken ?? '',
       });
     },

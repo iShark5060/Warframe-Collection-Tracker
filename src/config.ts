@@ -5,8 +5,6 @@ const projectRoot = process.cwd();
 loadEnv({ path: path.join(projectRoot, '.env') });
 
 export const APP_NAME = process.env.APP_NAME ?? 'Warframe Collection Tracker';
-export const AUTH_USERNAME = process.env.AUTH_USERNAME ?? 'admin';
-export const AUTH_PASSWORD = process.env.AUTH_PASSWORD ?? 'changeme';
 export const AUTH_LOCKOUT_FILE = path.resolve(
   process.env.AUTH_LOCKOUT_FILE ?? './data/auth-lockout.json',
 );
@@ -21,6 +19,10 @@ export const AUTH_LOCKOUT_MINUTES = parseInt(
 export const SQLITE_DB_PATH = path.resolve(
   process.env.SQLITE_DB_PATH ?? './data/collection.db',
 );
+export const IMPORT_DEFAULT_ADMIN_USERNAME =
+  process.env.IMPORT_DEFAULT_ADMIN_USERNAME;
+export const IMPORT_DEFAULT_ADMIN_PASSWORD =
+  process.env.IMPORT_DEFAULT_ADMIN_PASSWORD;
 export const CSV_IMPORT_DIR = path.resolve(
   process.env.CSV_IMPORT_DIR ?? './import',
 );

@@ -97,6 +97,17 @@
         font-size: 14px;
         text-align: center;
     }
+    .info-box {
+        background: rgba(14,165,233,0.1);
+        border: 1px solid rgba(14,165,233,0.3);
+        color: var(--accent);
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        text-align: center;
+    }
+    .info-box a { color: inherit; }
     .lockout-timer { text-align: center; color: var(--muted); font-size: 14px; margin-top: 16px; }
     .lockout-timer span { color: var(--danger); font-weight: 600; }
     </style>
@@ -108,6 +119,11 @@
             <h1><%= appName %></h1>
             <p class="subtitle">Please log in to continue</p>
             <% if (error) { %><div class="error"><%= error %></div><% } %>
+            <% if (typeof dbExists !== 'undefined' && !dbExists) { %>
+            <div class="info-box">
+                Database not initialized. Run: <code>npm run import</code>
+            </div>
+            <% } %>
             <form method="POST" action="/login">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="form-group">

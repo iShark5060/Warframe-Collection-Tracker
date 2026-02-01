@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Create User - <%= appName %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+    :root { --text: #e5e7eb; --muted: #9ca3af; --accent: #0ea5e9; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0; padding: 24px; color: var(--text);
+        background: linear-gradient(to bottom, #272b36 0%, #050507 100%);
+        background-size: 100% 100%; background-repeat: no-repeat; background-attachment: fixed;
+        min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .bg-art {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        white-space: pre; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2;
+        color: rgba(255,255,255,0.05); z-index: 0; pointer-events: none; user-select: none;
+    }
+    .register-container { position: relative; z-index: 1; width: 100%; max-width: 400px; }
+    .register-box {
+        background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 1rem; padding: 32px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: 1.25rem; }
+    .admin-badge {
+        padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--warning);
+        background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+    .form-group input[type="text"], .form-group input[type="password"] {
+        width: 100%; padding: 12px 14px; font-size: 14px; color: var(--text);
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; outline: none;
+    }
+    .form-group input:focus { border-color: var(--accent); }
+    .form-group-inline { display: flex; align-items: center; gap: 8px; }
+    .form-group-inline input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+    .form-group-inline label { margin-bottom: 0; cursor: pointer; }
+    .btn {
+        width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 500; color: var(--text);
+        background: var(--accent); border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s;
+    }
+    .btn:hover { background: #0284c7; }
+    .error {
+        background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+        color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 16px;
+        font-size: 14px; text-align: center;
+    }
+    .success {
+        background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+        color: var(--success); padding: 12px; border-radius: 8px; margin-bottom: 16px;
+        font-size: 14px; text-align: center;
+    }
+    .links { display: flex; justify-content: center; gap: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .links a { color: var(--muted); font-size: 14px; text-decoration: none; transition: color 0.2s; }
+    .links a:hover { color: var(--text); }
+    </style>
+</head>
+<body>
+    <% if (typeof art !== 'undefined' && art) { %><div class="bg-art"><%- art %></div><% } %>
+    <div class="register-container">
+        <div class="register-box">
+            <div class="header">
+                <h1>Create User</h1>
+                <span class="admin-badge">ADMIN</span>
+            </div>
+            <% if (error) { %><div class="error"><%= error %></div><% } %>
+            <% if (success) { %><div class="success"><%= success %></div><% } %>
+            <form method="POST" action="/register">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="off" value="<%= typeof username !== 'undefined' ? username : '' %>">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required autocomplete="new-password">
+                </div>
+                <div class="form-group form-group-inline">
+                    <input type="checkbox" id="is_admin" name="is_admin">
+                    <label for="is_admin">Grant administrator privileges</label>
+                </div>
+                <button type="submit" class="btn">Create User</button>
+            </form>
+            <div class="links">
+                <a href="/admin">Admin Panel</a>
+                <a href="/">Back to Tracker</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

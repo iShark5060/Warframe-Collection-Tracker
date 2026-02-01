@@ -137,16 +137,19 @@ export function registerPageRoutes(app: Application): void {
         return;
       }
 
-      return res.render('login', {
-        appName: APP_NAME,
-        art,
-        error: result.error,
-        lockedOut: isLockedOut(ip),
-        lockoutRemaining: getLockoutRemaining(ip),
-        dbExists: dbExists(),
-        csrfToken: res.locals.csrfToken ?? '',
-        esc,
-      });
+      if (!result.success) {
+        return res.render('login', {
+          appName: APP_NAME,
+          art,
+          error: result.error,
+          lockedOut: isLockedOut(ip),
+          lockoutRemaining: getLockoutRemaining(ip),
+          dbExists: dbExists(),
+          csrfToken: res.locals.csrfToken ?? '',
+          esc,
+        });
+      }
+      return undefined;
     },
   );
 

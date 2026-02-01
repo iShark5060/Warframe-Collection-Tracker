@@ -96,14 +96,24 @@ async function runImport(): Promise<void> {
   outputSuccess('Schema created successfully.');
   output('');
 
-  if (!q.userExists(db, IMPORT_DEFAULT_ADMIN_USERNAME)) {
-    const hash = await argon2.hash(IMPORT_DEFAULT_ADMIN_PASSWORD, {
-      type: argon2.argon2id,
-      memoryCost: 19 * 1024,
-      timeCost: 2,
-      parallelism: 1,
-    });
-    q.createUser(db, IMPORT_DEFAULT_ADMIN_USERNAME, hash, true);
+  if (IMPORT_DEFAULT_ADMIN_PASSWORD.length < 4) {
+    outputError('IMPORT_DEFAULT_ADMIN_PASSWORD must be at least 4 characters.');
+    process.exit(1);
+  }
+
+  const hash = await argon2.hash(IMPORT_DEFAULT_ADMIN_PASSWORD, {
+    type: argon2.argon2id,
+    memoryCost: 19 * 1024,
+    timeCost: 2,
+    parallelism: 1,
+  });
+  const createResult = q.createUser(
+    db,
+    IMPORT_DEFAULT_ADMIN_USERNAME,
+    hash,
+    true,
+  );
+  if (createResult.inserted) {
     outputSuccess('Default admin user created.');
   } else {
     outputSuccess('Default admin user already exists.');

@@ -51,13 +51,16 @@ export function createUser(
   username: string,
   passwordHash: string,
   isAdmin: boolean,
-): number {
+): { id: number; inserted: boolean } {
   const r = db
     .prepare(
-      'INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)',
+      'INSERT OR IGNORE INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)',
     )
     .run(username, passwordHash, isAdmin ? 1 : 0);
-  return Number(r.lastInsertRowid);
+  const row = db
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .get(username) as { id: number } | undefined;
+  return { id: row!.id, inserted: r.changes > 0 };
 }
 
 export function getUserById(

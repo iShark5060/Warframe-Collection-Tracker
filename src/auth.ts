@@ -1,4 +1,5 @@
 import argon2 from 'argon2';
+import type { SessionData } from 'express-session';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,6 +10,9 @@ import {
 } from './config.js';
 import * as q from './db/queries.js';
 import { getDb } from './db/schema.js';
+
+/** Session shape used by auth helpers; matches express-session SessionData. */
+export type AuthSession = SessionData | undefined;
 
 interface LockoutRecord {
   attempts: number;
@@ -23,6 +27,8 @@ let lockoutCache: LockoutData | null = null;
 let lockoutCacheDirty = false;
 let lockoutCacheLastLoad = 0;
 const LOCKOUT_CACHE_TTL = 5000;
+/** Force reload from disk if cache has been dirty longer than this (avoids stale data on write failure). */
+const LOCKOUT_MAX_DIRTY_MS = 60_000;
 
 /**
  * Hash a password using argon2id (OWASP recommended)
@@ -58,11 +64,13 @@ function ensureLockoutDir(): void {
 
 function getLockoutData(): LockoutData {
   const now = Date.now();
-
-  if (
+  const stale =
     lockoutCache === null ||
-    (!lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_CACHE_TTL)
-  ) {
+    (!lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_CACHE_TTL);
+  const dirtyTooLong =
+    lockoutCacheDirty && now - lockoutCacheLastLoad > LOCKOUT_MAX_DIRTY_MS;
+
+  if (stale || dirtyTooLong) {
     if (!fs.existsSync(AUTH_LOCKOUT_FILE)) {
       lockoutCache = {};
       lockoutCacheDirty = false;
@@ -82,6 +90,20 @@ function getLockoutData(): LockoutData {
   }
 
   return lockoutCache ?? {};
+}
+
+/** Dummy hash for constant-time comparison when user is not found (timing-attack mitigation). */
+let dummyHashPromise: Promise<string> | null = null;
+function getDummyHash(): Promise<string> {
+  if (!dummyHashPromise) {
+    dummyHashPromise = argon2.hash('timing-dummy', {
+      type: argon2.argon2id,
+      memoryCost: 19 * 1024,
+      timeCost: 2,
+      parallelism: 1,
+    });
+  }
+  return dummyHashPromise;
 }
 
 function saveLockoutData(data: LockoutData): void {
@@ -166,7 +188,10 @@ export async function attemptLogin(
   username: string,
   password: string,
   ip: string,
-): Promise<{ success: true } | { success: false; error: string }> {
+): Promise<
+  | { success: true; user: { id: number; username: string; is_admin: number } }
+  | { success: false; error: string }
+> {
   if (isLockedOut(ip)) {
     return {
       success: false,
@@ -178,6 +203,7 @@ export async function attemptLogin(
   try {
     const user = q.getUserByUsername(db, username.trim());
     if (!user) {
+      await getDummyHash().then((h) => verifyPassword(password, h));
       const remaining = recordFailedAttempt(ip);
       if (remaining <= 0) {
         return {
@@ -207,7 +233,14 @@ export async function attemptLogin(
     }
 
     clearFailedAttempts(ip);
-    return { success: true };
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        is_admin: user.is_admin,
+      },
+    };
   } finally {
     db.close();
   }
@@ -245,12 +278,12 @@ export async function createUser(
         error: 'Password must be at least 4 characters',
       };
     }
-    if (q.userExists(db, u)) {
+    const hash = await hashPassword(password);
+    const result = q.createUser(db, u, hash, isAdminUser);
+    if (!result.inserted) {
       return { success: false, error: 'Username already exists' };
     }
-    const hash = await hashPassword(password);
-    const userId = q.createUser(db, u, hash, isAdminUser);
-    return { success: true, user_id: userId };
+    return { success: true, user_id: result.id };
   } finally {
     db.close();
   }
@@ -308,12 +341,10 @@ export function getAllUsers(): {
   }
 }
 
-export function isAuthenticated(
-  session: { user_id?: number } | undefined,
-): boolean {
+export function isAuthenticated(session: AuthSession): boolean {
   return typeof session?.user_id === 'number' && session.user_id > 0;
 }
 
-export function isAdmin(session: { is_admin?: boolean } | undefined): boolean {
+export function isAdmin(session: AuthSession): boolean {
   return Boolean(session?.is_admin);
 }

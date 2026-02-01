@@ -52,7 +52,7 @@ TypeScript/Node.js web app for tracking your Warframe collection (worksheets wit
    npm start      # production (after npm run build)
    ```
 
-   By default the app runs at **http://127.0.0.1:3000** (`HOST` and `PORT` in `.env`).
+   By default the app runs at **<http://127.0.0.1:3000>** (`HOST` and `PORT` in `.env`).
 
 ## Routes
 

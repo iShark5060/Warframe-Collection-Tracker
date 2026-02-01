@@ -1,13 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { isAuthenticated, isAdmin } from '../auth.js';
+import { type AuthSession, isAuthenticated, isAdmin } from '../auth.js';
+
+function getSession(req: Request): AuthSession {
+  return req.session as AuthSession;
+}
 
 export function requireAuth(
   req: Request,
   res: Response,
   next: NextFunction,
 ): void {
-  if (isAuthenticated(req.session as { user_id?: number } | undefined)) {
+  if (isAuthenticated(getSession(req))) {
     next();
     return;
   }
@@ -19,11 +23,11 @@ export function requireAdmin(
   res: Response,
   next: NextFunction,
 ): void {
-  if (!isAuthenticated(req.session as { user_id?: number } | undefined)) {
+  if (!isAuthenticated(getSession(req))) {
     res.redirect('/login');
     return;
   }
-  if (!isAdmin(req.session as { is_admin?: boolean } | undefined)) {
+  if (!isAdmin(getSession(req))) {
     res.status(403).send('Admin access required');
     return;
   }
@@ -35,7 +39,7 @@ export function requireAuthApi(
   res: Response,
   next: NextFunction,
 ): void {
-  if (isAuthenticated(req.session as { user_id?: number } | undefined)) {
+  if (isAuthenticated(getSession(req))) {
     next();
     return;
   }
@@ -47,7 +51,7 @@ export function redirectIfAuthenticated(
   res: Response,
   next: NextFunction,
 ): void {
-  if (isAuthenticated(req.session as { user_id?: number } | undefined)) {
+  if (isAuthenticated(getSession(req))) {
     res.redirect('/');
     return;
   }

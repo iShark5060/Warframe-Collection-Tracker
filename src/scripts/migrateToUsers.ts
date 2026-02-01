@@ -93,15 +93,19 @@ async function run(): Promise<void> {
       process.exit(1);
     }
 
-    output(`Creating admin user: ${username}`);
+    output('Creating admin user...');
     const hash = await argon2.hash(password, {
       type: argon2.argon2id,
       memoryCost: 19 * 1024,
       timeCost: 2,
       parallelism: 1,
     });
-    q.createUser(db, username, hash, true);
-    outputSuccess('Admin user created.');
+    const createResult = q.createUser(db, username, hash, true);
+    if (createResult.inserted) {
+      outputSuccess('Admin user created.');
+    } else {
+      outputSuccess('Admin user already existed (no change).');
+    }
     output('');
     output(
       'Migration complete. You can now log in with the new user-based auth.',

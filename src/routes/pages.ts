@@ -7,7 +7,6 @@ import {
   getClientIP,
   isLockedOut,
   getLockoutRemaining,
-  getUserForLogin,
   createUser,
 } from '../auth.js';
 import { APP_NAME, SQLITE_DB_PATH } from '../config.js';
@@ -102,20 +101,8 @@ export function registerPageRoutes(app: Application): void {
 
       const result = await attemptLogin(username, password, ip);
 
-      if (result.success) {
-        const user = getUserForLogin(username);
-        if (!user) {
-          return res.render('login', {
-            appName: APP_NAME,
-            art,
-            error: 'Login failed. Please try again.',
-            lockedOut: false,
-            lockoutRemaining: 0,
-            dbExists: dbExists(),
-            csrfToken: res.locals.csrfToken ?? '',
-            esc,
-          });
-        }
+      if (result.success && result.user) {
+        const user = result.user;
 
         const loginErrorPayload = () =>
           res.render('login', {
@@ -233,7 +220,7 @@ export function registerPageRoutes(app: Application): void {
       } else {
         const result = await createUser(username, password, isAdminUser);
         if (result.success) {
-          success = `User '${username}' created successfully!`;
+          success = `User '${esc(username)}' created successfully!`;
         } else {
           error = result.error;
         }
